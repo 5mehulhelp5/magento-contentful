@@ -500,6 +500,65 @@ app.get('/test-oauth', async (req, res) => {
   }
 });
 
+// Test page search functionality
+app.get('/test-search/:identifier', async (req, res) => {
+  try {
+    const { getCmsPageByIdentifier } = require('./src/utils/magentoAPI');
+    const identifier = req.params.identifier;
+    
+    console.log(`Searching for page: ${identifier}`);
+    const page = await getCmsPageByIdentifier(identifier);
+    
+    res.json({
+      identifier: identifier,
+      found: page !== null,
+      page: page
+    });
+  } catch (error) {
+    console.error('Error testing search:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List all CMS pages
+app.get('/test-list-pages', async (req, res) => {
+  try {
+    const { generateOAuthHeader } = require('./src/utils/magentoAuth');
+    const baseUrl = process.env.MAGENTO_BASE_URL;
+    const endpoint = `${baseUrl}/rest/default/V1/cmsPage/search`;
+    const queryString = 'searchCriteria[pageSize]=20';
+    const searchEndpoint = `${endpoint}?${queryString}`;
+
+    const authHeader = generateOAuthHeader('GET', searchEndpoint);
+    
+    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+    const response = await fetch(searchEndpoint, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      }
+    });
+
+    const responseText = await response.text();
+    let responseData;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      responseData = { message: responseText };
+    }
+
+    res.json({
+      status: response.status,
+      data: responseData
+    });
+  } catch (error) {
+    console.error('Error listing pages:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\\n🚀 Contentful Express Renderer running on http://localhost:${PORT}`);

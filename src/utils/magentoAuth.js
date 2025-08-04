@@ -10,16 +10,28 @@ const crypto = require('crypto');
  * @returns {string} OAuth signature
  */
 function generateOAuthSignature(method, url, params, consumerSecret, tokenSecret) {
+  // Parse URL to separate base URL and query parameters
+  const urlObj = new URL(url);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+  
+  // Combine OAuth parameters with any query parameters from the URL
+  const allParams = { ...params };
+  
+  // Add query parameters to the signature parameters
+  for (const [key, value] of urlObj.searchParams) {
+    allParams[key] = value;
+  }
+  
   // Sort parameters alphabetically
-  const sortedParams = Object.keys(params)
+  const sortedParams = Object.keys(allParams)
     .sort()
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(allParams[key])}`)
     .join('&');
 
-  // Create signature base string
+  // Create signature base string using base URL (without query parameters)
   const baseString = [
     method.toUpperCase(),
-    encodeURIComponent(url),
+    encodeURIComponent(baseUrl),
     encodeURIComponent(sortedParams)
   ].join('&');
 

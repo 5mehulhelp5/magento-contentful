@@ -2,6 +2,81 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const { generateOAuthHeader } = require('./magentoAuth');
 
 /**
+ * Check if a CMS page exists by identifier
+ * @param {string} identifier - Page identifier to search for
+ * @returns {Promise<Object|null>} Page data if exists, null if not found
+ */
+async function getCmsPageByIdentifier(identifier) {
+  const baseUrl = process.env.MAGENTO_BASE_URL;
+  const endpoint = `${baseUrl}/rest/default/V1/cmsPage/search`;
+  
+  const searchCriteria = {
+    searchCriteria: {
+      filterGroups: [
+        {
+          filters: [
+            {
+              field: "identifier",
+              value: identifier,
+              conditionType: "eq"
+            }
+          ]
+        }
+      ]
+    }
+  };
+
+  try {
+    const queryString = `searchCriteria[filterGroups][0][filters][0][field]=identifier&searchCriteria[filterGroups][0][filters][0][value]=${encodeURIComponent(identifier)}&searchCriteria[filterGroups][0][filters][0][conditionType]=eq`;
+    const searchEndpoint = `${endpoint}?${queryString}`;
+    
+    const authHeader = generateOAuthHeader('GET', searchEndpoint);
+
+    console.log('DEBUG: Searching for CMS page:', {
+      identifier,
+      searchEndpoint,
+      authHeaderPreview: authHeader.substring(0, 50) + '...'
+    });
+
+    const response = await fetch(searchEndpoint, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      }
+    });
+
+    const responseText = await response.text();
+    let responseData;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      responseData = { message: responseText };
+    }
+
+    if (!response.ok) {
+      console.error('Error searching for CMS page:', {
+        status: response.status,
+        response: responseData
+      });
+      return null;
+    }
+
+    // Return the first page if found, null if not found
+    if (responseData.items && responseData.items.length > 0) {
+      return responseData.items[0];
+    }
+    
+    return null;
+
+  } catch (error) {
+    console.error('Error searching for CMS page:', error);
+    return null;
+  }
+}
+
+/**
  * Create or update a CMS page in Magento
  * @param {Object} pageData - Page data object
  * @param {string} pageData.identifier - Unique page identifier
@@ -145,19 +220,35 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       new Date().toISOString().slice(0, 19).replace('T', ' ')
   };
 
-  // Try to create new page directly
-  console.log(`Creating new Magento page: ${identifier}`);
-  const result = await createOrUpdateCmsPage(pageData, 'POST');
+  // Check if page already exists
+  console.log(`Checking if Magento page exists: ${identifier}`);
+  const existingPage = await getCmsPageByIdentifier(identifier);
+  
+  let result;
+  let action;
+
+  if (existingPage) {
+    // Page exists, update it
+    console.log(`Updating existing Magento page: ${identifier} (ID: ${existingPage.id})`);
+    result = await createOrUpdateCmsPage(pageData, 'PUT', existingPage.id);
+    action = 'updated';
+  } else {
+    // Page doesn't exist, create it
+    console.log(`Creating new Magento page: ${identifier}`);
+    result = await createOrUpdateCmsPage(pageData, 'POST');
+    action = 'created';
+  }
 
   return {
     ...result,
-    action: 'created',
+    action: action,
     identifier: identifier,
     title: title
   };
 }
 
 module.exports = {
+  getCmsPageByIdentifier,
   createOrUpdateCmsPage,
   submitToMagento
 };
