@@ -559,6 +559,101 @@ app.get('/test-list-pages', async (req, res) => {
   }
 });
 
+// Database endpoints for managing searchable status
+const MagentoDatabase = require('./src/utils/database');
+
+// Set specific pages as searchable/not searchable
+app.post('/db/cms-pages/searchable', async (req, res) => {
+  try {
+    const { identifiers, searchable = 1 } = req.body;
+    
+    if (!identifiers) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing identifiers parameter. Provide a string or array of page identifiers.' 
+      });
+    }
+
+    const db = new MagentoDatabase();
+    const result = await db.setCmsPageSearchable(identifiers, searchable);
+    await db.disconnect();
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error setting searchable status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
+// Get searchable status of all CMS pages
+app.get('/db/cms-pages/searchable', async (req, res) => {
+  try {
+    const { identifiers } = req.query; // Allow comma-separated list in query
+    
+    let targetIdentifiers = null;
+    if (identifiers) {
+      targetIdentifiers = identifiers.split(',').map(id => id.trim());
+    }
+
+    const db = new MagentoDatabase();
+    const pages = await db.getCmsPageSearchableStatus(targetIdentifiers);
+    await db.disconnect();
+    
+    res.json({
+      success: true,
+      pages: pages
+    });
+  } catch (error) {
+    console.error('Error getting searchable status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
+// Get searchable status of specific CMS page
+app.get('/db/cms-pages/searchable/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+
+    const db = new MagentoDatabase();
+    const pages = await db.getCmsPageSearchableStatus(identifier);
+    await db.disconnect();
+    
+    res.json({
+      success: true,
+      pages: pages
+    });
+  } catch (error) {
+    console.error('Error getting searchable status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
+// Make all Contentful pages searchable
+app.post('/db/cms-pages/make-contentful-searchable', async (req, res) => {
+  try {
+    const db = new MagentoDatabase();
+    const result = await db.makeContentfulPagesSearchable();
+    await db.disconnect();
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error making Contentful pages searchable:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\\n🚀 Contentful Express Renderer running on http://localhost:${PORT}`);

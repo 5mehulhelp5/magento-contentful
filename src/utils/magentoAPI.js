@@ -239,6 +239,25 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
     action = 'created';
   }
 
+  // If successful, make the page searchable via database
+  if (result.success) {
+    try {
+      const MagentoDatabase = require('./database');
+      const db = new MagentoDatabase();
+      const searchableResult = await db.setCmsPageSearchable(identifier, 1);
+      await db.disconnect();
+      
+      if (searchableResult.success) {
+        console.log(`✅ Made page searchable: ${identifier}`);
+      } else {
+        console.log(`⚠️  Warning: Could not make page searchable: ${searchableResult.message}`);
+      }
+    } catch (error) {
+      console.log(`⚠️  Warning: Could not make page searchable: ${error.message}`);
+      // Don't fail the whole operation if searchable update fails
+    }
+  }
+
   return {
     ...result,
     action: action,
