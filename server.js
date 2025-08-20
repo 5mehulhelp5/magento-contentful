@@ -22,6 +22,12 @@ const contentfulClient = createClient({
   environment: process.env.CONTENTFUL_ENVIRONMENT || 'master'
 });
 
+// Note: CONTENTFUL_MANAGEMENT_TOKEN is required for the new Magento ID workflow
+// This allows updating Contentful entries with Magento IDs after page creation
+if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
+  console.warn('⚠️  CONTENTFUL_MANAGEMENT_TOKEN not found. New Magento ID workflow will not be able to update Contentful entries.');
+}
+
 // Basic CSS for styling
 const basicCSS = `
   body {
@@ -153,7 +159,7 @@ async function getContentfulEntry(entryId) {
 // Search for a Magento CMS page by identifier
 async function findMagentoPageByIdentifier(identifier) {
   const request = {
-    url: `${process.env.MAGENTO_API_URL}/rest/default/V1/cmsPage/search?searchCriteria[filter_groups][0][filters][0][field]=identifier&searchCriteria[filter_groups][0][filters][0][value]=${identifier}&searchCriteria[filter_groups][0][filters][0][condition_type]=eq`,
+    url: `${process.env.STAGING_MAGENTO_BASE_URL}/rest/default/V1/cmsPage/search?searchCriteria[filter_groups][0][filters][0][field]=identifier&searchCriteria[filter_groups][0][filters][0][value]=${identifier}&searchCriteria[filter_groups][0][filters][0][condition_type]=eq`,
     method: 'GET',
   };
 
@@ -488,10 +494,10 @@ app.get('/test-oauth', async (req, res) => {
       url: testUrl,
       authHeader: authHeader,
       env: {
-        consumerKey: process.env.MAGENTO_CONSUMER_KEY ? 'Set' : 'Not set',
-        consumerSecret: process.env.MAGENTO_CONSUMER_SECRET ? 'Set' : 'Not set', 
-        accessToken: process.env.MAGENTO_ACCESS_TOKEN ? 'Set' : 'Not set',
-        tokenSecret: process.env.MAGENTO_TOKEN_SECRET ? 'Set' : 'Not set'
+        consumerKey: process.env.STAGING_MAGENTO_CONSUMER_KEY ? 'Set' : 'Not set',
+        consumerSecret: process.env.STAGING_MAGENTO_CONSUMER_SECRET ? 'Set' : 'Not set', 
+        accessToken: process.env.STAGING_MAGENTO_ACCESS_TOKEN ? 'Set' : 'Not set',
+        tokenSecret: process.env.STAGING_MAGENTO_TOKEN_SECRET ? 'Set' : 'Not set'
       }
     });
   } catch (error) {
@@ -524,7 +530,7 @@ app.get('/test-search/:identifier', async (req, res) => {
 app.get('/test-list-pages', async (req, res) => {
   try {
     const { generateOAuthHeader } = require('./src/utils/magentoAuth');
-    const baseUrl = process.env.MAGENTO_BASE_URL;
+    const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
     const endpoint = `${baseUrl}/rest/default/V1/cmsPage/search`;
     const queryString = 'searchCriteria[pageSize]=20';
     const searchEndpoint = `${endpoint}?${queryString}`;

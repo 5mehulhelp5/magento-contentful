@@ -1,5 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { generateOAuthHeader } = require('./magentoAuth');
+const ContentfulManagement = require('./contentfulManagement');
 
 /**
  * Check if a CMS page exists by identifier
@@ -7,7 +8,7 @@ const { generateOAuthHeader } = require('./magentoAuth');
  * @returns {Promise<Object|null>} Page data if exists, null if not found
  */
 async function getCmsPageByIdentifier(identifier) {
-  const baseUrl = process.env.MAGENTO_BASE_URL;
+  const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
   const endpoint = `${baseUrl}/rest/default/V1/cmsPage/search`;
   
   const searchCriteria = {
@@ -88,7 +89,7 @@ async function getCmsPageByIdentifier(identifier) {
  * @returns {Promise<Object>} API response
  */
 async function createOrUpdateCmsPage(pageData, method = 'POST', pageId = null) {
-  const baseUrl = process.env.MAGENTO_BASE_URL;
+  const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
   const endpoint = pageId ? 
     `${baseUrl}/rest/default/V1/cmsPage/${pageId}` : 
     `${baseUrl}/rest/default/V1/cmsPage`;
@@ -107,7 +108,7 @@ async function createOrUpdateCmsPage(pageData, method = 'POST', pageId = null) {
       update_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
       sort_order: pageData.sort_order || '0',
       custom_theme: pageData.custom_theme || '',
-      active: pageData.active !== undefined ? pageData.active : true
+      active: pageData.active !== undefined ? (pageData.active ? 1 : 0) : 1
     }
   };
 
@@ -166,6 +167,57 @@ async function createOrUpdateCmsPage(pageData, method = 'POST', pageId = null) {
 }
 
 /**
+ * Get a CMS page by ID (direct lookup)
+ * @param {string|number} pageId - Magento page ID
+ * @returns {Promise<Object|null>} Page data if exists, null if not found
+ */
+async function getCmsPageById(pageId) {
+  const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
+  const endpoint = `${baseUrl}/rest/default/V1/cmsPage/${pageId}`;
+  
+  try {
+    const authHeader = generateOAuthHeader('GET', endpoint);
+
+    console.log('DEBUG: Getting CMS page by ID:', {
+      pageId,
+      endpoint,
+      authHeaderPreview: authHeader.substring(0, 50) + '...'
+    });
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      }
+    });
+
+    const responseText = await response.text();
+    let responseData;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      responseData = { message: responseText };
+    }
+
+    if (!response.ok) {
+      console.error('Error getting CMS page by ID:', {
+        status: response.status,
+        response: responseData
+      });
+      return null;
+    }
+
+    return responseData;
+
+  } catch (error) {
+    console.error('Error getting CMS page by ID:', error);
+    return null;
+  }
+}
+
+/**
  * Submit a Contentful article to Magento as a CMS page
  * @param {Object} contentfulEntry - Contentful entry object
  * @param {string} renderedHtml - Rendered HTML content
@@ -173,20 +225,14 @@ async function createOrUpdateCmsPage(pageData, method = 'POST', pageId = null) {
  */
 async function submitToMagento(contentfulEntry, renderedHtml) {
   const title = contentfulEntry.fields.title || 'Untitled';
+  const existingMagentoId = contentfulEntry.fields.magentoId;
   
-  // Create a more meaningful URL-friendly identifier based on title
-  const titleSlug = title.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
-    .substring(0, 40); // Limit length
-  
-  // Fallback to entry ID if title produces empty slug
-  const shortId = contentfulEntry.sys.id.substring(0, 8).toLowerCase().replace(/[^a-z0-9]/g, '');
-  const identifier = titleSlug || `cf-${shortId}`;
-
-  console.log(`Attempting to create Magento page: ${identifier}`);
+  console.log(`Processing article: ${title}`);
+  if (existingMagentoId) {
+    console.log(`Found existing Magento ID: ${existingMagentoId}`);
+  } else {
+    console.log('No existing Magento ID found - will create new page');
+  }
 
   // Sanitize and validate data for Magento
   const sanitizeString = (str) => {
@@ -204,15 +250,26 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   };
 
+  // Create a meaningful URL-friendly identifier based on title (fallback for new pages)
+  const titleSlug = title.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 40); // Limit length
+  
+  // Fallback to entry ID if title produces empty slug
+  const shortId = contentfulEntry.sys.id.substring(0, 8).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fallbackIdentifier = titleSlug || `cf-${shortId}`;
+
   const pageData = {
-    identifier: identifier,
     title: sanitizeString(title),
     content: renderedHtml,
     meta_title: sanitizeString(contentfulEntry.fields.metaTitle || title),
     meta_description: sanitizeString(contentfulEntry.fields.metaDescription || ''),
     meta_keywords: sanitizeString(contentfulEntry.fields.metaKeywords || ''),
     content_heading: sanitizeString(contentfulEntry.fields.contentHeading || ''),
-    active: true,
+    active: 1,
     page_layout: 'cms-full-width',
     sort_order: '0',
     creation_time: contentfulEntry.sys.createdAt ? 
@@ -220,30 +277,78 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       new Date().toISOString().slice(0, 19).replace('T', ' ')
   };
 
-  // Check if page already exists
-  console.log(`Checking if Magento page exists: ${identifier}`);
-  const existingPage = await getCmsPageByIdentifier(identifier);
-  
   let result;
   let action;
+  let finalMagentoId;
 
-  if (existingPage) {
-    // Page exists, update it
-    console.log(`Updating existing Magento page: ${identifier} (ID: ${existingPage.id})`);
-    result = await createOrUpdateCmsPage(pageData, 'PUT', existingPage.id);
-    action = 'updated';
+  if (existingMagentoId) {
+    // We have a Magento ID, try to update the existing page
+    console.log(`Updating existing Magento page with ID: ${existingMagentoId}`);
+    
+    // First verify the page still exists
+    const existingPage = await getCmsPageById(existingMagentoId);
+    
+    if (existingPage) {
+      // Page exists, update it using the ID
+      result = await createOrUpdateCmsPage(pageData, 'PUT', existingMagentoId);
+      action = 'updated';
+      finalMagentoId = existingMagentoId;
+    } else {
+      // Page no longer exists in Magento, create a new one
+      console.log(`⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`);
+      pageData.identifier = fallbackIdentifier;
+      result = await createOrUpdateCmsPage(pageData, 'POST');
+      action = 'recreated';
+      finalMagentoId = result.success ? result.data.id : null;
+    }
   } else {
-    // Page doesn't exist, create it
-    console.log(`Creating new Magento page: ${identifier}`);
-    result = await createOrUpdateCmsPage(pageData, 'POST');
-    action = 'created';
+    // No Magento ID exists, check if a page with the identifier already exists (legacy check)
+    console.log(`Checking if Magento page exists with identifier: ${fallbackIdentifier}`);
+    const existingPage = await getCmsPageByIdentifier(fallbackIdentifier);
+    
+    if (existingPage) {
+      // Page exists with this identifier, update it and save the ID back to Contentful
+      console.log(`Found existing page with identifier ${fallbackIdentifier}, updating and saving ID`);
+      result = await createOrUpdateCmsPage(pageData, 'PUT', existingPage.id);
+      action = 'updated';
+      finalMagentoId = existingPage.id;
+    } else {
+      // Create new page
+      console.log(`Creating new Magento page with identifier: ${fallbackIdentifier}`);
+      pageData.identifier = fallbackIdentifier;
+      result = await createOrUpdateCmsPage(pageData, 'POST');
+      action = 'created';
+      finalMagentoId = result.success ? result.data.id : null;
+    }
   }
 
-  // If successful, make the page searchable via database
-  if (result.success) {
+  // If successful, save the Magento ID back to Contentful (if needed) and make page searchable
+  if (result.success && finalMagentoId) {
+    // Save Magento ID back to Contentful if we don't already have it or if it changed
+    if (!existingMagentoId || existingMagentoId !== finalMagentoId) {
+      try {
+        const contentfulMgmt = new ContentfulManagement();
+        const updateResult = await contentfulMgmt.updateEntryWithMagentoId(
+          contentfulEntry.sys.id, 
+          finalMagentoId
+        );
+        
+        if (updateResult.success) {
+          console.log(`✅ Saved Magento ID ${finalMagentoId} back to Contentful entry ${contentfulEntry.sys.id}`);
+        } else {
+          console.log(`⚠️  Warning: Could not save Magento ID back to Contentful: ${updateResult.message}`);
+        }
+      } catch (error) {
+        console.log(`⚠️  Warning: Could not save Magento ID back to Contentful: ${error.message}`);
+        // Don't fail the whole operation if Contentful update fails
+      }
+    }
+
+    // Make the page searchable via database
     try {
       const MagentoDatabase = require('./database');
       const db = new MagentoDatabase();
+      const identifier = pageData.identifier || fallbackIdentifier;
       const searchableResult = await db.setCmsPageSearchable(identifier, 1);
       await db.disconnect();
       
@@ -261,13 +366,15 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   return {
     ...result,
     action: action,
-    identifier: identifier,
-    title: title
+    identifier: pageData.identifier || fallbackIdentifier,
+    title: title,
+    magentoId: finalMagentoId
   };
 }
 
 module.exports = {
   getCmsPageByIdentifier,
+  getCmsPageById,
   createOrUpdateCmsPage,
   submitToMagento
 };

@@ -59,8 +59,8 @@ function generateOAuthHeader(method, url, bodyParams = {}) {
   const nonce = crypto.randomBytes(32).toString('hex') + timestamp;
 
   const oauthParams = {
-    oauth_consumer_key: process.env.MAGENTO_CONSUMER_KEY,
-    oauth_token: process.env.MAGENTO_ACCESS_TOKEN,
+    oauth_consumer_key: process.env.STAGING_MAGENTO_CONSUMER_KEY,
+    oauth_token: process.env.STAGING_MAGENTO_ACCESS_TOKEN,
     oauth_signature_method: 'HMAC-SHA256',
     oauth_timestamp: timestamp,
     oauth_nonce: nonce,
@@ -76,8 +76,8 @@ function generateOAuthHeader(method, url, bodyParams = {}) {
     method,
     url,
     signatureParams,
-    process.env.MAGENTO_CONSUMER_SECRET,
-    process.env.MAGENTO_TOKEN_SECRET
+    process.env.STAGING_MAGENTO_CONSUMER_SECRET,
+    process.env.STAGING_MAGENTO_TOKEN_SECRET
   );
 
   // Add signature to OAuth parameters
