@@ -1,16 +1,16 @@
-require('dotenv').config();
-require('@babel/register')({
-  presets: ['@babel/preset-env', '@babel/preset-react'],
-  extensions: ['.js', '.jsx']
+require("dotenv").config();
+require("@babel/register")({
+  presets: ["@babel/preset-env", "@babel/preset-react"],
+  extensions: [".js", ".jsx"],
 });
 
-const express = require('express');
-const React = require('react');
-const { renderToStaticMarkup } = require('react-dom/server');
-const { createClient } = require('contentful');
-const fs = require('fs').promises;
-const path = require('path');
-const { submitToMagento } = require('./src/utils/magentoAPI');
+const express = require("express");
+const React = require("react");
+const { renderToStaticMarkup } = require("react-dom/server");
+const { createClient } = require("contentful");
+const fs = require("fs").promises;
+const path = require("path");
+const { submitToMagento } = require("./src/utils/magentoAPI");
 
 const app = express();
 app.use(express.json());
@@ -19,13 +19,15 @@ app.use(express.json());
 const contentfulClient = createClient({
   space: process.env.CONTENTFUL_SPACE_ID,
   accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
-  environment: process.env.CONTENTFUL_ENVIRONMENT || 'master'
+  environment: process.env.CONTENTFUL_ENVIRONMENT || "master",
 });
 
 // Note: CONTENTFUL_MANAGEMENT_TOKEN is required for the new Magento ID workflow
 // This allows updating Contentful entries with Magento IDs after page creation
 if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
-  console.warn('⚠️  CONTENTFUL_MANAGEMENT_TOKEN not found. New Magento ID workflow will not be able to update Contentful entries.');
+  console.warn(
+    "⚠️  CONTENTFUL_MANAGEMENT_TOKEN not found. New Magento ID workflow will not be able to update Contentful entries."
+  );
 }
 
 // Basic CSS for styling
@@ -69,14 +71,48 @@ const basicCSS = `
   .text-lg { font-size: 18px; line-height: 28px; }
   .text-base { font-size: 16px; line-height: 24px; }
   .text-sm { font-size: 14px; line-height: 20px; }
+  .text-xs { font-size: 12px; line-height: 16px; }
   .font-medium { font-weight: 500; }
   .font-semibold { font-weight: 600; }
+  .font-bold { font-weight: 700; }
   .leading-relaxed { line-height: 1.625; }
+  .leading-tight { line-height: 1.25; }
   .underline { text-decoration: underline; }
   .italic { font-style: italic; }
   .rounded-lg { border-radius: 8px; }
+  .rounded-full { border-radius: 9999px; }
+  .border { border-width: 1px; }
+  .border-gray-200 { border-color: #e5e7eb; }
   .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+  .hover\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+  .hover\:border-green-600:hover { border-color: #16a34a; }
   .overflow-hidden { overflow: hidden; }
+  .bg-gray-100 { background-color: #f3f4f6; }
+  .bg-gray-200 { background-color: #e5e7eb; }
+  .text-gray-400 { color: #9ca3af; }
+  .w-8 { width: 32px; }
+  .h-8 { height: 32px; }
+  .h-40 { height: 160px; }
+  .p-4 { padding: 16px; }
+  .px-3 { padding-left: 12px; padding-right: 12px; }
+  .py-0\.5 { padding-top: 2px; padding-bottom: 2px; }
+  .mb-2 { margin-bottom: 8px; }
+  .justify-between { justify-content: space-between; }
+  .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+  .transition-colors { transition-property: color, background-color, border-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+  .transition-transform { transition-property: transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+  .duration-200 { transition-duration: 200ms; }
+  .group:hover .group-hover\:scale-105 { transform: scale(1.05); }
+  .group:hover .group-hover\:text-green-600 { color: #16a34a; }
+  .inline-flex { display: inline-flex; }
+  .relative { position: relative; }
+  .block { display: block; }
+  .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+  .grid { display: grid !important; }
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+  .gap-6 { gap: 24px !important; }
   .overflow-x-auto { overflow-x: auto; }
   .object-cover { object-fit: cover; }
   .max-w-full { max-width: 100%; }
@@ -112,36 +148,48 @@ const basicCSS = `
   .flex { display: flex; }
   .items-center { align-items: center; }
   
+  /* Custom responsive grid classes */
+  .responsive-grid {
+    display: grid !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    gap: 24px !important;
+  }
+  
   @media (min-width: 640px) {
     .sm\:px-6 { padding-left: 24px; padding-right: 24px; }
+  }
+  
+  @media (min-width: 768px) {
+    .responsive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .md\:text-5xl { font-size: 48px; line-height: 1; }
   }
   
   @media (min-width: 1024px) {
     .lg\:px-8 { padding-left: 32px; padding-right: 32px; }
   }
   
-  @media (min-width: 768px) {
-    .md\:text-5xl { font-size: 48px; line-height: 1; }
+  @media (min-width: 1280px) {
+    .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   }
 `;
 
 // Function to render page to static HTML
 async function renderPageToStatic(PageComponent, props = {}) {
   const html = renderToStaticMarkup(React.createElement(PageComponent, props));
-  
+
   const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${props.title || 'Page'}</title>
+    <title>${props.title || "Page"}</title>
     <style>${basicCSS}</style>
 </head>
 <body>
     ${html}
 </body>
 </html>`;
-  
+
   return { html: fullHtml };
 }
 
@@ -151,8 +199,181 @@ async function getContentfulEntry(entryId) {
     const entry = await contentfulClient.getEntry(entryId);
     return entry;
   } catch (error) {
-    console.error('Error fetching Contentful entry:', error);
+    console.error("Error fetching Contentful entry:", error);
     return null;
+  }
+}
+
+// Get category data from Contentful
+async function getContentfulCategory(categoryId) {
+  try {
+    const category = await contentfulClient.getEntry(categoryId);
+    return category;
+  } catch (error) {
+    console.error("Error fetching Contentful category:", error);
+    return null;
+  }
+}
+
+// Get child categories for a given parent category
+async function getChildCategories(parentCategoryId) {
+  try {
+    const childCategories = await contentfulClient.getEntries({
+      content_type: "category",
+      "fields.parent.sys.id": parentCategoryId,
+      limit: 1000, // Get all child categories
+    });
+
+    console.log(
+      `Found ${childCategories.items.length} child categories for ${parentCategoryId}`
+    );
+    return childCategories.items;
+  } catch (error) {
+    console.error("Error fetching child categories:", error);
+    return [];
+  }
+}
+
+// Get articles by category from Contentful (supports hierarchical aggregation)
+async function getCategoryArticles(categoryId, limit = 100, skip = 0) {
+  try {
+    console.log(`Fetching articles for category: ${categoryId}`);
+
+    // First, get articles directly assigned to this category
+    const directArticles = await getDirectCategoryArticles(
+      categoryId,
+      limit,
+      skip
+    );
+
+    // If no direct articles found, check if this category has children and aggregate their articles
+    if (directArticles.items.length === 0) {
+      console.log(`No direct articles found, checking for child categories...`);
+      const childCategories = await getChildCategories(categoryId);
+
+      if (childCategories.length > 0) {
+        console.log(
+          `Aggregating articles from ${childCategories.length} child categories`
+        );
+
+        // Get articles from all child categories
+        const allArticles = [];
+        const existingIds = new Set();
+
+        for (const childCategory of childCategories) {
+          const childArticles = await getDirectCategoryArticles(
+            childCategory.sys.id,
+            1000,
+            0
+          );
+
+          childArticles.items.forEach((article) => {
+            if (!existingIds.has(article.sys.id)) {
+              allArticles.push(article);
+              existingIds.add(article.sys.id);
+            }
+          });
+        }
+
+        // Sort by published date (most recent first)
+        allArticles.sort((a, b) => {
+          const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+          const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+          return dateB - dateA;
+        });
+
+        console.log(
+          `Found ${allArticles.length} articles from child categories`
+        );
+
+        return {
+          items: allArticles.slice(skip, skip + limit), // Apply pagination
+          total: allArticles.length,
+          limit,
+          skip,
+        };
+      }
+    }
+
+    return directArticles;
+  } catch (error) {
+    console.error("Error fetching category articles:", error);
+    return { items: [], total: 0, limit, skip };
+  }
+}
+
+// Get articles directly assigned to a specific category (helper function)
+async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
+  try {
+    // Query articles where mainCategory includes the target category
+    const entries = await contentfulClient.getEntries({
+      content_type: "article",
+      limit: limit,
+      skip: skip,
+      "sys.id[ne]": categoryId, // Exclude the category entry itself
+      "fields.mainCategory.sys.id": categoryId,
+      include: 2, // Include linked entries (categories, assets)
+      select: [
+        "sys.id",
+        "sys.createdAt",
+        "sys.updatedAt",
+        "fields.title",
+        "fields.featuredImage",
+        "fields.imageAlt",
+        "fields.listImage",
+        "fields.listImageAlt",
+        "fields.publishedAt",
+        "fields.metaDescription",
+      ].join(","),
+    });
+
+    // Also fetch articles that have this category as a secondary category
+    const secondaryEntries = await contentfulClient.getEntries({
+      content_type: "article",
+      limit: limit,
+      skip: skip,
+      "fields.secondaryCategories.sys.id[in]": categoryId,
+      include: 2,
+      select: [
+        "sys.id",
+        "sys.createdAt",
+        "sys.updatedAt",
+        "fields.title",
+        "fields.featuredImage",
+        "fields.imageAlt",
+        "fields.listImage",
+        "fields.listImageAlt",
+        "fields.publishedAt",
+        "fields.metaDescription",
+      ].join(","),
+    });
+
+    // Combine and deduplicate articles by ID
+    const allArticles = [...entries.items];
+    const existingIds = new Set(entries.items.map((item) => item.sys.id));
+
+    secondaryEntries.items.forEach((item) => {
+      if (!existingIds.has(item.sys.id)) {
+        allArticles.push(item);
+      }
+    });
+
+    // Sort by published date (most recent first)
+    allArticles.sort((a, b) => {
+      const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+      const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+      return dateB - dateA;
+    });
+
+    return {
+      items: allArticles,
+      total: entries.total + secondaryEntries.total,
+      limit,
+      skip,
+    };
+  } catch (error) {
+    console.error("Error fetching direct category articles:", error);
+    return { items: [], total: 0, limit, skip };
   }
 }
 
@@ -160,7 +381,7 @@ async function getContentfulEntry(entryId) {
 async function findMagentoPageByIdentifier(identifier) {
   const request = {
     url: `${process.env.STAGING_MAGENTO_BASE_URL}/rest/default/V1/cmsPage/search?searchCriteria[filter_groups][0][filters][0][field]=identifier&searchCriteria[filter_groups][0][filters][0][value]=${identifier}&searchCriteria[filter_groups][0][filters][0][condition_type]=eq`,
-    method: 'GET',
+    method: "GET",
   };
 
   const authHeader = getOAuthHeaders(request);
@@ -169,7 +390,7 @@ async function findMagentoPageByIdentifier(identifier) {
     method: request.method,
     headers: {
       ...authHeader,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
@@ -183,65 +404,64 @@ async function findMagentoPageByIdentifier(identifier) {
 }
 
 // API Routes
-app.get('/render/article/:entryId', async (req, res) => {
+app.get("/render/article/:entryId", async (req, res) => {
   try {
     const { entryId } = req.params;
-    
+
     // Fetch content from Contentful
     const contentfulEntry = await getContentfulEntry(entryId);
-    
+
     if (!contentfulEntry) {
-      return res.status(404).json({ error: 'Content not found' });
+      return res.status(404).json({ error: "Content not found" });
     }
-    
-    const PageComponent = require('./src/pages/ArticlePage.jsx').default;
+
+    const PageComponent = require("./src/pages/ArticlePage.jsx").default;
     const { html } = await renderPageToStatic(PageComponent, {
       data: contentfulEntry.fields,
       title: contentfulEntry.fields.title,
     });
-    
+
     // Save to output directory
-    await fs.mkdir('./output', { recursive: true });
+    await fs.mkdir("./output", { recursive: true });
     await fs.writeFile(`./output/${entryId}.html`, html);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `Article rendered and saved to ./output/${entryId}.html`,
       entryId: entryId,
-      title: contentfulEntry.fields.title
+      title: contentfulEntry.fields.title,
     });
-    
   } catch (error) {
-    console.error('Error rendering article:', error);
+    console.error("Error rendering article:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // New route: Render and submit to Magento
-app.post('/render-and-submit/:entryId', async (req, res) => {
+app.post("/render-and-submit/:entryId", async (req, res) => {
   try {
     const { entryId } = req.params;
-    
+
     // Fetch content from Contentful
     const contentfulEntry = await getContentfulEntry(entryId);
-    
+
     if (!contentfulEntry) {
-      return res.status(404).json({ error: 'Content not found' });
+      return res.status(404).json({ error: "Content not found" });
     }
-    
-    const PageComponent = require('./src/pages/ArticlePage.jsx').default;
+
+    const PageComponent = require("./src/pages/ArticlePage.jsx").default;
     const { html } = await renderPageToStatic(PageComponent, {
       data: contentfulEntry.fields,
       title: contentfulEntry.fields.title,
     });
-    
+
     // Save to output directory
-    await fs.mkdir('./output', { recursive: true });
+    await fs.mkdir("./output", { recursive: true });
     await fs.writeFile(`./output/${entryId}.html`, html);
-    
+
     // Submit to Magento
     const magentoResult = await submitToMagento(contentfulEntry, html);
-    
+
     if (magentoResult.success) {
       res.json({
         success: true,
@@ -251,27 +471,26 @@ app.post('/render-and-submit/:entryId', async (req, res) => {
         magento: {
           action: magentoResult.action,
           identifier: magentoResult.identifier,
-          status: magentoResult.status
-        }
+          status: magentoResult.status,
+        },
       });
     } else {
       res.status(500).json({
         success: false,
-        message: 'Article rendered but failed to submit to Magento',
+        message: "Article rendered but failed to submit to Magento",
         entryId: entryId,
         title: contentfulEntry.fields.title,
-        error: magentoResult.error
+        error: magentoResult.error,
       });
     }
-    
   } catch (error) {
-    console.error('Error rendering and submitting article:', error);
+    console.error("Error rendering and submitting article:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Render and send to Magento
-app.post('/render/article/:entryId/magento', async (req, res) => {
+app.post("/render/article/:entryId/magento", async (req, res) => {
   try {
     const { entryId } = req.params;
 
@@ -279,10 +498,10 @@ app.post('/render/article/:entryId/magento', async (req, res) => {
     const contentfulEntry = await getContentfulEntry(entryId);
 
     if (!contentfulEntry) {
-      return res.status(404).json({ error: 'Content not found' });
+      return res.status(404).json({ error: "Content not found" });
     }
 
-    const PageComponent = require('./src/pages/ArticlePage.jsx').default;
+    const PageComponent = require("./src/pages/ArticlePage.jsx").default;
     const { html } = await renderPageToStatic(PageComponent, {
       data: contentfulEntry.fields,
       title: contentfulEntry.fields.title,
@@ -311,7 +530,7 @@ app.post('/render/article/:entryId/magento', async (req, res) => {
         page: {
           identifier: magentoIdentifier,
           title: contentfulEntry.fields.title,
-          page_layout: 'cms-full-width',
+          page_layout: "cms-full-width",
           content: html,
           active: true,
         },
@@ -321,54 +540,156 @@ app.post('/render/article/:entryId/magento', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Article ${existingPage ? 'updated' : 'created'} in Magento.`,
+      message: `Article ${existingPage ? "updated" : "created"} in Magento.`,
       magentoResponse,
     });
-
   } catch (error) {
-    console.error('Error processing Magento request:', error);
+    console.error("Error processing Magento request:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Preview route to view rendered content
-app.get('/preview/article/:entryId', async (req, res) => {
+app.get("/preview/article/:entryId", async (req, res) => {
   try {
     const { entryId } = req.params;
-    
+
     // Fetch content from Contentful
     const contentfulEntry = await getContentfulEntry(entryId);
-    
+
     if (!contentfulEntry) {
-      return res.status(404).send('<h1>Content not found</h1>');
+      return res.status(404).send("<h1>Content not found</h1>");
     }
-    
-    const PageComponent = require('./src/pages/ArticlePage.jsx').default;
+
+    const PageComponent = require("./src/pages/ArticlePage.jsx").default;
     const { html } = await renderPageToStatic(PageComponent, {
       data: contentfulEntry.fields,
       title: contentfulEntry.fields.title,
     });
-    
+
     res.send(html);
-    
   } catch (error) {
-    console.error('Error previewing article:', error);
-    res.status(500).send('<h1>Error loading content</h1>');
+    console.error("Error previewing article:", error);
+    res.status(500).send("<h1>Error loading content</h1>");
   }
 });
 
-// List all entries
-// Webhook for Contentful
-app.post('/webhook/contentful', async (req, res) => {
+// Preview route for category list pages
+app.get("/preview/category/:categoryId", async (req, res) => {
   try {
-    const contentfulTopic = req.headers['x-contentful-topic'];
-    
+    const { categoryId } = req.params;
+
+    // Fetch category data from Contentful
+    const categoryData = await getContentfulCategory(categoryId);
+
+    if (!categoryData) {
+      return res.status(404).send("<h1>Category not found</h1>");
+    }
+
+    // Fetch articles for this category
+    const { items: articles, total } = await getCategoryArticles(categoryId);
+
+    console.log(
+      `Preview category: ${categoryData.fields?.title} with ${articles.length} articles`
+    );
+
+    const CategoryListPage =
+      require("./src/pages/CategoryListPage.jsx").default;
+    const { html } = await renderPageToStatic(CategoryListPage, {
+      categoryData,
+      articles,
+      totalCount: total,
+      title: `${categoryData.fields?.title || "Category"} - Articles`,
+    });
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error previewing category:", error);
+    res.status(500).send("<h1>Error loading category page</h1>");
+  }
+});
+
+// Render category page and submit to Magento
+app.post("/render-and-submit-category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Fetch category data from Contentful
+    const categoryData = await getContentfulCategory(categoryId);
+
+    if (!categoryData) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    // Fetch articles for this category
+    const { items: articles, total } = await getCategoryArticles(categoryId);
+
+    console.log(
+      `Rendering category: ${categoryData.fields?.title} with ${articles.length} articles`
+    );
+
+    const CategoryListPage =
+      require("./src/pages/CategoryListPage.jsx").default;
+    const { html } = await renderPageToStatic(CategoryListPage, {
+      categoryData,
+      articles,
+      totalCount: total,
+      title: `${categoryData.fields?.title || "Category"} - Articles`,
+    });
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/category-${categoryId}.html`, html);
+
+    // Submit to Magento
+    const { submitCategoryToMagento } = require("./src/utils/magentoAPI");
+    const magentoResult = await submitCategoryToMagento(categoryData, html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `Category page rendered and ${magentoResult.action} in Magento`,
+        categoryId: categoryId,
+        title: categoryData.fields?.title,
+        articleCount: articles.length,
+        totalArticles: total,
+        magento: {
+          action: magentoResult.action,
+          identifier: magentoResult.identifier,
+          magentoId: magentoResult.magentoId,
+          status: magentoResult.status,
+        },
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Category page rendered but failed to submit to Magento",
+        categoryId: categoryId,
+        title: categoryData.fields?.title,
+        articleCount: articles.length,
+        totalArticles: total,
+        error: magentoResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering and submitting category:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Webhook for Contentful
+app.post("/webhook/contentful", async (req, res) => {
+  try {
+    const contentfulTopic = req.headers["x-contentful-topic"];
+
     // Ensure it's an entry publish event
-    if (contentfulTopic === 'ContentManagement.Entry.publish') {
+    if (contentfulTopic === "ContentManagement.Entry.publish") {
       const entryId = req.body?.sys?.id;
 
       if (!entryId) {
-        return res.status(400).json({ error: 'Missing entryId in webhook payload.' });
+        return res
+          .status(400)
+          .json({ error: "Missing entryId in webhook payload." });
       }
 
       // Trigger the Magento push logic
@@ -377,59 +698,70 @@ app.post('/webhook/contentful', async (req, res) => {
       // to be directly callable without simulating an HTTP request.
       const internalReq = {
         params: { entryId: entryId },
-        body: {} // Webhook doesn't send body for this internal call
+        body: {}, // Webhook doesn't send body for this internal call
       };
       const internalRes = {
         json: (data) => {
-          console.log('Magento push result:', data);
-          res.status(200).json({ success: true, message: 'Webhook processed', magentoResult: data });
+          console.log("Magento push result:", data);
+          res.status(200).json({
+            success: true,
+            message: "Webhook processed",
+            magentoResult: data,
+          });
         },
         status: (code) => {
           return {
             json: (data) => {
-              console.error('Magento push error:', data);
-              res.status(code).json({ success: false, message: 'Webhook processing failed', error: data });
-            }
+              console.error("Magento push error:", data);
+              res.status(code).json({
+                success: false,
+                message: "Webhook processing failed",
+                error: data,
+              });
+            },
           };
-        }
+        },
       };
-      
+
       // Call the Magento push handler
-      await app.post('/render/article/:entryId/magento', internalReq, internalRes);
-
+      await app.post(
+        "/render/article/:entryId/magento",
+        internalReq,
+        internalRes
+      );
     } else {
-      res.status(200).json({ message: `Ignoring webhook topic: ${contentfulTopic}` });
+      res
+        .status(200)
+        .json({ message: `Ignoring webhook topic: ${contentfulTopic}` });
     }
-
   } catch (error) {
-    console.error('Error processing Contentful webhook:', error);
+    console.error("Error processing Contentful webhook:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/entries', async (req, res) => {
+app.get("/api/entries", async (req, res) => {
   try {
     const entries = await contentfulClient.getEntries({
-      limit: 10
+      limit: 10,
     });
-    
-    const entriesData = entries.items.map(entry => ({
+
+    const entriesData = entries.items.map((entry) => ({
       id: entry.sys.id,
-      title: entry.fields.title || 'Untitled',
+      title: entry.fields.title || "Untitled",
       contentType: entry.sys.contentType.sys.id,
-      updatedAt: entry.sys.updatedAt
+      updatedAt: entry.sys.updatedAt,
     }));
-    
+
     res.json(entriesData);
-    
   } catch (error) {
-    console.error('Error fetching entries:', error);
+    console.error("Error fetching entries:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Root route with instructions
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   const instructions = `
     <html>
       <head>
@@ -455,100 +787,244 @@ app.get('/', (req, res) => {
         
         <h2>Configuration:</h2>
         <ul>
-          <li>Contentful Space ID: ${process.env.CONTENTFUL_SPACE_ID || 'Not configured'}</li>
-          <li>Environment: ${process.env.CONTENTFUL_ENVIRONMENT || 'master'}</li>
+          <li>Contentful Space ID: ${
+            process.env.CONTENTFUL_SPACE_ID || "Not configured"
+          }</li>
+          <li>Environment: ${
+            process.env.CONTENTFUL_ENVIRONMENT || "master"
+          }</li>
         </ul>
       </body>
     </html>
   `;
-  
+
   res.send(instructions);
 });
 
 // Test route
-app.get('/test', async (req, res) => {
+app.get("/test", async (req, res) => {
   try {
-    const TestComponent = () => React.createElement('div', {
-      className: 'bg-green-50 text-gray-900 px-8 py-8 rounded-lg max-w-4xl mx-auto mt-8'
-    }, [
-      React.createElement('h1', { key: 'title', className: 'text-3xl font-medium mb-4' }, 'Test Page'),
-      React.createElement('p', { key: 'content', className: 'text-gray-700' }, 'Express server with Contentful integration is working!')
-    ]);
-    
-    const { html } = await renderPageToStatic(TestComponent, { title: 'Test Page' });
+    const TestComponent = () =>
+      React.createElement(
+        "div",
+        {
+          className:
+            "bg-green-50 text-gray-900 px-8 py-8 rounded-lg max-w-4xl mx-auto mt-8",
+        },
+        [
+          React.createElement(
+            "h1",
+            { key: "title", className: "text-3xl font-medium mb-4" },
+            "Test Page"
+          ),
+          React.createElement(
+            "p",
+            { key: "content", className: "text-gray-700" },
+            "Express server with Contentful integration is working!"
+          ),
+        ]
+      );
+
+    const { html } = await renderPageToStatic(TestComponent, {
+      title: "Test Page",
+    });
     res.send(html);
   } catch (error) {
-    console.error('Error in test route:', error);
+    console.error("Error in test route:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Test OAuth generation
-app.get('/test-oauth', async (req, res) => {
+app.get("/test-oauth", async (req, res) => {
   try {
-    const { generateOAuthHeader } = require('./src/utils/magentoAuth');
-    const testUrl = 'https://mcstaging.burpee.com/rest/default/V1/store/storeConfigs';
-    const authHeader = generateOAuthHeader('GET', testUrl);
-    
+    const { generateOAuthHeader } = require("./src/utils/magentoAuth");
+    const testUrl =
+      "https://mcstaging.burpee.com/rest/default/V1/store/storeConfigs";
+    const authHeader = generateOAuthHeader("GET", testUrl);
+
     res.json({
       url: testUrl,
       authHeader: authHeader,
       env: {
-        consumerKey: process.env.STAGING_MAGENTO_CONSUMER_KEY ? 'Set' : 'Not set',
-        consumerSecret: process.env.STAGING_MAGENTO_CONSUMER_SECRET ? 'Set' : 'Not set', 
-        accessToken: process.env.STAGING_MAGENTO_ACCESS_TOKEN ? 'Set' : 'Not set',
-        tokenSecret: process.env.STAGING_MAGENTO_TOKEN_SECRET ? 'Set' : 'Not set'
-      }
+        consumerKey: process.env.STAGING_MAGENTO_CONSUMER_KEY
+          ? "Set"
+          : "Not set",
+        consumerSecret: process.env.STAGING_MAGENTO_CONSUMER_SECRET
+          ? "Set"
+          : "Not set",
+        accessToken: process.env.STAGING_MAGENTO_ACCESS_TOKEN
+          ? "Set"
+          : "Not set",
+        tokenSecret: process.env.STAGING_MAGENTO_TOKEN_SECRET
+          ? "Set"
+          : "Not set",
+      },
     });
   } catch (error) {
-    console.error('Error testing OAuth:', error);
+    console.error("Error testing OAuth:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test Contentful management for categories
+app.get("/test-contentful-category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const ContentfulManagement = require("./src/utils/contentfulManagement");
+    
+    if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
+      return res.status(400).json({ 
+        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured" 
+      });
+    }
+
+    const contentfulMgmt = new ContentfulManagement();
+    
+    // Test getting category
+    console.log(`Testing Contentful category management for: ${categoryId}`);
+    const category = await contentfulMgmt.getCategory(categoryId);
+    
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    // Check existing Magento ID
+    const existingMagentoId = await contentfulMgmt.getCategoryMagentoId(categoryId);
+
+    res.json({
+      success: true,
+      categoryId: categoryId,
+      category: {
+        title: category.fields?.title?.['en-US'] || 'Untitled',
+        contentType: category.sys.contentType.sys.id,
+        existingMagentoId: existingMagentoId
+      },
+      message: "Category management test successful"
+    });
+  } catch (error) {
+    console.error("Error testing Contentful category management:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug: Show what content would be sent to Magento
+app.get("/debug-category-content/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Fetch category data from Contentful
+    const categoryData = await getContentfulCategory(categoryId);
+
+    if (!categoryData) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    // Fetch articles for this category
+    const { items: articles, total } = await getCategoryArticles(categoryId);
+
+    const CategoryListPage =
+      require("./src/pages/CategoryListPage.jsx").default;
+    const { html } = await renderPageToStatic(CategoryListPage, {
+      categoryData,
+      articles,
+      totalCount: total,
+      title: `${categoryData.fields?.title || "Category"} - Articles`,
+    });
+
+    // Extract content as would be sent to Magento
+    const { extractBodyContentForMagento } = require("./src/utils/magentoAPI");
+    const magentoContent = extractBodyContentForMagento(html);
+
+    res.json({
+      success: true,
+      categoryId: categoryId,
+      title: categoryData.fields?.title,
+      fullHtmlLength: html.length,
+      magentoContentLength: magentoContent.length,
+      magentoContent: magentoContent.substring(0, 1000) + "..." // First 1000 chars
+    });
+  } catch (error) {
+    console.error("Error debugging category content:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test updating a category with a Magento ID
+app.post("/test-contentful-category/:categoryId/magento-id", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { magentoId } = req.body;
+    
+    if (!magentoId) {
+      return res.status(400).json({ error: "magentoId is required in request body" });
+    }
+    
+    const ContentfulManagement = require("./src/utils/contentfulManagement");
+    
+    if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
+      return res.status(400).json({ 
+        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured" 
+      });
+    }
+
+    const contentfulMgmt = new ContentfulManagement();
+    
+    // Update category with Magento ID
+    console.log(`Testing update of category ${categoryId} with Magento ID: ${magentoId}`);
+    const result = await contentfulMgmt.updateCategoryWithMagentoId(categoryId, magentoId);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error testing Contentful category update:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Test page search functionality
-app.get('/test-search/:identifier', async (req, res) => {
+app.get("/test-search/:identifier", async (req, res) => {
   try {
-    const { getCmsPageByIdentifier } = require('./src/utils/magentoAPI');
+    const { getCmsPageByIdentifier } = require("./src/utils/magentoAPI");
     const identifier = req.params.identifier;
-    
+
     console.log(`Searching for page: ${identifier}`);
     const page = await getCmsPageByIdentifier(identifier);
-    
+
     res.json({
       identifier: identifier,
       found: page !== null,
-      page: page
+      page: page,
     });
   } catch (error) {
-    console.error('Error testing search:', error);
+    console.error("Error testing search:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // List all CMS pages
-app.get('/test-list-pages', async (req, res) => {
+app.get("/test-list-pages", async (req, res) => {
   try {
-    const { generateOAuthHeader } = require('./src/utils/magentoAuth');
+    const { generateOAuthHeader } = require("./src/utils/magentoAuth");
     const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
     const endpoint = `${baseUrl}/rest/default/V1/cmsPage/search`;
-    const queryString = 'searchCriteria[pageSize]=20';
+    const queryString = "searchCriteria[pageSize]=20";
     const searchEndpoint = `${endpoint}?${queryString}`;
 
-    const authHeader = generateOAuthHeader('GET', searchEndpoint);
-    
-    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+    const authHeader = generateOAuthHeader("GET", searchEndpoint);
+
+    const fetch = (...args) =>
+      import("node-fetch").then(({ default: fetch }) => fetch(...args));
     const response = await fetch(searchEndpoint, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      }
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
     });
 
     const responseText = await response.text();
     let responseData;
-    
+
     try {
       responseData = JSON.parse(responseText);
     } catch (e) {
@@ -557,115 +1033,122 @@ app.get('/test-list-pages', async (req, res) => {
 
     res.json({
       status: response.status,
-      data: responseData
+      data: responseData,
     });
   } catch (error) {
-    console.error('Error listing pages:', error);
+    console.error("Error listing pages:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Database endpoints for managing searchable status
-const MagentoDatabase = require('./src/utils/database');
+const MagentoDatabase = require("./src/utils/database");
 
 // Set specific pages as searchable/not searchable
-app.post('/db/cms-pages/searchable', async (req, res) => {
+app.post("/db/cms-pages/searchable", async (req, res) => {
   try {
     const { identifiers, searchable = 1 } = req.body;
-    
+
     if (!identifiers) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing identifiers parameter. Provide a string or array of page identifiers.' 
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing identifiers parameter. Provide a string or array of page identifiers.",
       });
     }
 
     const db = new MagentoDatabase();
     const result = await db.setCmsPageSearchable(identifiers, searchable);
     await db.disconnect();
-    
+
     res.json(result);
   } catch (error) {
-    console.error('Error setting searchable status:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error("Error setting searchable status:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 });
 
 // Get searchable status of all CMS pages
-app.get('/db/cms-pages/searchable', async (req, res) => {
+app.get("/db/cms-pages/searchable", async (req, res) => {
   try {
     const { identifiers } = req.query; // Allow comma-separated list in query
-    
+
     let targetIdentifiers = null;
     if (identifiers) {
-      targetIdentifiers = identifiers.split(',').map(id => id.trim());
+      targetIdentifiers = identifiers.split(",").map((id) => id.trim());
     }
 
     const db = new MagentoDatabase();
     const pages = await db.getCmsPageSearchableStatus(targetIdentifiers);
     await db.disconnect();
-    
+
     res.json({
       success: true,
-      pages: pages
+      pages: pages,
     });
   } catch (error) {
-    console.error('Error getting searchable status:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error("Error getting searchable status:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 });
 
 // Get searchable status of specific CMS page
-app.get('/db/cms-pages/searchable/:identifier', async (req, res) => {
+app.get("/db/cms-pages/searchable/:identifier", async (req, res) => {
   try {
     const { identifier } = req.params;
 
     const db = new MagentoDatabase();
     const pages = await db.getCmsPageSearchableStatus(identifier);
     await db.disconnect();
-    
+
     res.json({
       success: true,
-      pages: pages
+      pages: pages,
     });
   } catch (error) {
-    console.error('Error getting searchable status:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error("Error getting searchable status:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 });
 
 // Make all Contentful pages searchable
-app.post('/db/cms-pages/make-contentful-searchable', async (req, res) => {
+app.post("/db/cms-pages/make-contentful-searchable", async (req, res) => {
   try {
     const db = new MagentoDatabase();
     const result = await db.makeContentfulPagesSearchable();
     await db.disconnect();
-    
+
     res.json(result);
   } catch (error) {
-    console.error('Error making Contentful pages searchable:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error("Error making Contentful pages searchable:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\\n🚀 Contentful Express Renderer running on http://localhost:${PORT}`);
+  console.log(
+    `\\n🚀 Contentful Express Renderer running on http://localhost:${PORT}`
+  );
   console.log(`📝 Test the setup at http://localhost:${PORT}/test`);
   console.log(`📚 View instructions at http://localhost:${PORT}/`);
   console.log(`🔍 List entries at http://localhost:${PORT}/api/entries`);
-  console.log(`\\n💡 To preview an article: http://localhost:${PORT}/preview/article/[entryId]`);
-  console.log(`💾 To render an article: http://localhost:${PORT}/render/article/[entryId]\\n`);
+  console.log(
+    `\\n💡 To preview an article: http://localhost:${PORT}/preview/article/[entryId]`
+  );
+  console.log(
+    `💾 To render an article: http://localhost:${PORT}/render/article/[entryId]\\n`
+  );
 });

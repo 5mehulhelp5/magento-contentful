@@ -262,9 +262,12 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   const shortId = contentfulEntry.sys.id.substring(0, 8).toLowerCase().replace(/[^a-z0-9]/g, '');
   const fallbackIdentifier = titleSlug || `cf-${shortId}`;
 
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
   const pageData = {
     title: sanitizeString(title),
-    content: renderedHtml,
+    content: magentoContent,
     meta_title: sanitizeString(contentfulEntry.fields.metaTitle || title),
     meta_description: sanitizeString(contentfulEntry.fields.metaDescription || ''),
     meta_keywords: sanitizeString(contentfulEntry.fields.metaKeywords || ''),
@@ -372,9 +375,179 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   };
 }
 
+/**
+ * Extract just the body content from full HTML document for Magento
+ * @param {string} fullHtml - Complete HTML document
+ * @returns {string} Just the body content with minimal scoped styles
+ */
+function extractBodyContentForMagento(fullHtml) {
+  // Extract styles from head
+  const styleMatch = fullHtml.match(/<style>([\s\S]*?)<\/style>/);
+  let styles = styleMatch ? styleMatch[1] : '';
+  
+  // Extract body content
+  const bodyMatch = fullHtml.match(/<body>([\s\S]*?)<\/body>/);
+  const bodyContent = bodyMatch ? bodyMatch[1] : fullHtml;
+  
+  // Wrap content in a scoped container to prevent CSS conflicts
+  const scopedContent = `<div class="contentful-category-page">${bodyContent}</div>`;
+  
+  // Simple CSS scoping - just prefix our main classes to avoid conflicts
+  if (styles) {
+    styles = styles
+      // Scope body styles to our container
+      .replace(/body\s*{/g, '.contentful-category-page {')
+      // Scope all class selectors
+      .replace(/(\s|^)(\.[a-zA-Z][a-zA-Z0-9_-]*)/g, '$1.contentful-category-page $2')
+      // Fix our responsive-grid specifically
+      .replace(/\.contentful-category-page \.contentful-category-page/g, '.contentful-category-page')
+      // Fix media queries that got double-scoped
+      .replace(/@media[^{]+{[^}]+\.contentful-category-page \.responsive-grid/g, (match) => {
+        return match.replace('\.contentful-category-page \.responsive-grid', '.contentful-category-page .responsive-grid');
+      });
+  }
+  
+  return `<style>${styles}</style>\n${scopedContent}`;
+}
+
+/**
+ * Submit a category page to Magento (create or update)
+ * @param {Object} categoryData - Contentful category data
+ * @param {string} renderedHtml - Rendered HTML content
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function submitCategoryToMagento(categoryData, renderedHtml) {
+  const title = categoryData.fields.title?.['en-US'] || 'Untitled Category';
+  const existingMagentoId = categoryData.fields.magentoId?.['en-US'];
+  
+  console.log(`Processing category: ${title}`);
+  if (existingMagentoId) {
+    console.log(`Found existing Magento ID: ${existingMagentoId}`);
+  } else {
+    console.log('No existing Magento ID found - will create new page');
+  }
+
+  // Sanitize and validate data for Magento
+  const sanitizeString = (str) => {
+    if (!str) return '';
+    return str.replace(/[<>\/\\]/g, '').substring(0, 255);
+  };
+
+  // Create URL-safe identifier for category pages
+  const createCategorySlug = (categoryTitle) => {
+    if (!categoryTitle) return '';
+    return categoryTitle.toLowerCase()
+      .replace(/[^a-z0-9\s-\/]/g, '') // Keep slashes for category hierarchies
+      .replace(/\s*\/\s*/g, '-') // Replace " / " with hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 50); // Limit length
+  };
+
+  // Create identifier with "category-" prefix
+  const categorySlug = createCategorySlug(title);
+  const shortId = categoryData.sys.id.substring(0, 8).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fallbackIdentifier = categorySlug ? `category-${categorySlug}` : `category-cf-${shortId}`;
+
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
+  const pageData = {
+    title: `${sanitizeString(title)} - Articles`,
+    content: magentoContent,
+    meta_title: sanitizeString(`${title} - Articles`),
+    meta_description: sanitizeString(`Browse all articles in the ${title} category`),
+    active: 1,
+    page_layout: 'cms-full-width',
+    sort_order: '100', // Lower priority than individual articles
+    creation_time: categoryData.sys.createdAt ? 
+      new Date(categoryData.sys.createdAt).toISOString().slice(0, 19).replace('T', ' ') :
+      new Date().toISOString().slice(0, 19).replace('T', ' '),
+    update_time: new Date().toISOString().slice(0, 19).replace('T', ' ')
+  };
+
+  let result;
+  const contentfulMgmt = new ContentfulManagement();
+
+  try {
+    if (existingMagentoId) {
+      // Update existing page
+      console.log(`Updating existing Magento page with ID: ${existingMagentoId}`);
+      result = await createOrUpdateCmsPage(pageData, 'PUT', existingMagentoId);
+      
+      if (result.success) {
+        console.log(`✅ Successfully updated Magento page ${existingMagentoId} for category "${title}"`);
+        return {
+          success: true,
+          action: 'updated',
+          identifier: result.data.identifier || fallbackIdentifier,
+          magentoId: existingMagentoId,
+          status: result.data.active ? 'active' : 'inactive',
+          title: title
+        };
+      } else {
+        console.log(`❌ Failed to update Magento page: ${result.error}`);
+        return {
+          success: false,
+          action: 'update_failed',
+          error: result.error,
+          title: title
+        };
+      }
+    } else {
+      // Create new page
+      console.log(`Creating new Magento page for category "${title}"`);
+      pageData.identifier = fallbackIdentifier;
+      
+      result = await createOrUpdateCmsPage(pageData, 'POST');
+      
+      if (result.success && result.data.id) {
+        const newMagentoId = result.data.id.toString();
+        console.log(`✅ Successfully created Magento page with ID: ${newMagentoId} for category "${title}"`);
+        
+        // Update Contentful with the new Magento ID
+        const updateResult = await contentfulMgmt.updateCategoryWithMagentoId(categoryData.sys.id, newMagentoId);
+        
+        if (!updateResult.success) {
+          console.warn(`⚠️  Created Magento page but failed to update Contentful: ${updateResult.error}`);
+        }
+        
+        return {
+          success: true,
+          action: 'created',
+          identifier: result.data.identifier || fallbackIdentifier,
+          magentoId: newMagentoId,
+          status: result.data.active ? 'active' : 'inactive',
+          title: title,
+          contentfulUpdate: updateResult
+        };
+      } else {
+        console.log(`❌ Failed to create Magento page: ${result.error}`);
+        return {
+          success: false,
+          action: 'create_failed',
+          error: result.error,
+          title: title
+        };
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Error submitting category to Magento:`, error);
+    return {
+      success: false,
+      action: 'error',
+      error: error.message,
+      title: title
+    };
+  }
+}
+
 module.exports = {
   getCmsPageByIdentifier,
   getCmsPageById,
   createOrUpdateCmsPage,
-  submitToMagento
+  submitToMagento,
+  submitCategoryToMagento,
+  extractBodyContentForMagento
 };
