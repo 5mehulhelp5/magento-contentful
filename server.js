@@ -246,53 +246,47 @@ async function getCategoryArticles(categoryId, limit = 100, skip = 0) {
       skip
     );
 
-    // If no direct articles found, check if this category has children and aggregate their articles
-    if (directArticles.items.length === 0) {
-      console.log(`No direct articles found, checking for child categories...`);
-      const childCategories = await getChildCategories(categoryId);
+    const childCategories = await getChildCategories(categoryId);
 
-      if (childCategories.length > 0) {
-        console.log(
-          `Aggregating articles from ${childCategories.length} child categories`
+    if (childCategories.length > 0) {
+      console.log(
+        `Aggregating articles from ${childCategories.length} child categories`
+      );
+
+      // Get articles from all child categories
+      const allArticles = [];
+      const existingIds = new Set();
+
+      for (const childCategory of childCategories) {
+        const childArticles = await getDirectCategoryArticles(
+          childCategory.sys.id,
+          1000,
+          0
         );
 
-        // Get articles from all child categories
-        const allArticles = [];
-        const existingIds = new Set();
-
-        for (const childCategory of childCategories) {
-          const childArticles = await getDirectCategoryArticles(
-            childCategory.sys.id,
-            1000,
-            0
-          );
-
-          childArticles.items.forEach((article) => {
-            if (!existingIds.has(article.sys.id)) {
-              allArticles.push(article);
-              existingIds.add(article.sys.id);
-            }
-          });
-        }
-
-        // Sort by published date (most recent first)
-        allArticles.sort((a, b) => {
-          const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
-          const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
-          return dateB - dateA;
+        childArticles.items.forEach((article) => {
+          if (!existingIds.has(article.sys.id)) {
+            allArticles.push(article);
+            existingIds.add(article.sys.id);
+          }
         });
-
-        console.log(
-          `Found ${allArticles.length} articles from child categories`
-        );
-
-        return {
-          items: allArticles.slice(skip, skip + limit), // Apply pagination
-          total: allArticles.length,
-          limit,
-          skip,
-        };
       }
+
+      // Sort by published date (most recent first)
+      allArticles.sort((a, b) => {
+        const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+        const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+        return dateB - dateA;
+      });
+
+      console.log(`Found ${allArticles.length} articles from child categories`);
+
+      return {
+        items: [...directArticles.items, ...allArticles], // Apply pagination
+        total: allArticles.length,
+        limit,
+        skip,
+      };
     }
 
     return directArticles;
@@ -876,35 +870,37 @@ app.get("/test-contentful-category/:categoryId", async (req, res) => {
   try {
     const { categoryId } = req.params;
     const ContentfulManagement = require("./src/utils/contentfulManagement");
-    
+
     if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
-      return res.status(400).json({ 
-        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured" 
+      return res.status(400).json({
+        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured",
       });
     }
 
     const contentfulMgmt = new ContentfulManagement();
-    
+
     // Test getting category
     console.log(`Testing Contentful category management for: ${categoryId}`);
     const category = await contentfulMgmt.getCategory(categoryId);
-    
+
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
 
     // Check existing Magento ID
-    const existingMagentoId = await contentfulMgmt.getCategoryMagentoId(categoryId);
+    const existingMagentoId = await contentfulMgmt.getCategoryMagentoId(
+      categoryId
+    );
 
     res.json({
       success: true,
       categoryId: categoryId,
       category: {
-        title: category.fields?.title?.['en-US'] || 'Untitled',
+        title: category.fields?.title?.["en-US"] || "Untitled",
         contentType: category.sys.contentType.sys.id,
-        existingMagentoId: existingMagentoId
+        existingMagentoId: existingMagentoId,
       },
-      message: "Category management test successful"
+      message: "Category management test successful",
     });
   } catch (error) {
     console.error("Error testing Contentful category management:", error);
@@ -946,7 +942,7 @@ app.get("/debug-category-content/:categoryId", async (req, res) => {
       title: categoryData.fields?.title,
       fullHtmlLength: html.length,
       magentoContentLength: magentoContent.length,
-      magentoContent: magentoContent.substring(0, 1000) + "..." // First 1000 chars
+      magentoContent: magentoContent.substring(0, 1000) + "...", // First 1000 chars
     });
   } catch (error) {
     console.error("Error debugging category content:", error);
@@ -955,35 +951,45 @@ app.get("/debug-category-content/:categoryId", async (req, res) => {
 });
 
 // Test updating a category with a Magento ID
-app.post("/test-contentful-category/:categoryId/magento-id", async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const { magentoId } = req.body;
-    
-    if (!magentoId) {
-      return res.status(400).json({ error: "magentoId is required in request body" });
-    }
-    
-    const ContentfulManagement = require("./src/utils/contentfulManagement");
-    
-    if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
-      return res.status(400).json({ 
-        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured" 
-      });
-    }
+app.post(
+  "/test-contentful-category/:categoryId/magento-id",
+  async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { magentoId } = req.body;
 
-    const contentfulMgmt = new ContentfulManagement();
-    
-    // Update category with Magento ID
-    console.log(`Testing update of category ${categoryId} with Magento ID: ${magentoId}`);
-    const result = await contentfulMgmt.updateCategoryWithMagentoId(categoryId, magentoId);
+      if (!magentoId) {
+        return res
+          .status(400)
+          .json({ error: "magentoId is required in request body" });
+      }
 
-    res.json(result);
-  } catch (error) {
-    console.error("Error testing Contentful category update:", error);
-    res.status(500).json({ error: error.message });
+      const ContentfulManagement = require("./src/utils/contentfulManagement");
+
+      if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
+        return res.status(400).json({
+          error: "CONTENTFUL_MANAGEMENT_TOKEN not configured",
+        });
+      }
+
+      const contentfulMgmt = new ContentfulManagement();
+
+      // Update category with Magento ID
+      console.log(
+        `Testing update of category ${categoryId} with Magento ID: ${magentoId}`
+      );
+      const result = await contentfulMgmt.updateCategoryWithMagentoId(
+        categoryId,
+        magentoId
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing Contentful category update:", error);
+      res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 // Test page search functionality
 app.get("/test-search/:identifier", async (req, res) => {
