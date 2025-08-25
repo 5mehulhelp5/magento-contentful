@@ -14,11 +14,12 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
   };
 
   const breadcrumbs = createBreadcrumbs(title);
+  console.log(breadcrumbs);
 
   return React.createElement(
     "div",
     {
-      className: "min-h-screen bg-gray-50",
+      className: "page-layout",
     },
     [
       // Header section
@@ -26,12 +27,12 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
         "div",
         {
           key: "header",
-          className: "bg-white shadow-sm",
+          className: "page-header",
         },
         React.createElement(
           "div",
           {
-            className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
+            className: "container page-header-content",
           },
           [
             // Breadcrumb navigation
@@ -40,20 +41,19 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                 "nav",
                 {
                   key: "breadcrumbs",
-                  className: "mb-4",
+                  className: "breadcrumbs",
                 },
                 React.createElement(
                   "ol",
                   {
-                    className:
-                      "flex items-center space-x-2 text-sm text-gray-500",
+                    className: "breadcrumb-list",
                   },
                   breadcrumbs.map((crumb, index) =>
                     React.createElement(
                       "li",
                       {
                         key: index,
-                        className: "flex items-center",
+                        className: "breadcrumb-item",
                       },
                       [
                         index > 0 &&
@@ -61,7 +61,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                             "span",
                             {
                               key: "separator",
-                              className: "mx-2 text-gray-300",
+                              className: "breadcrumb-separator",
                             },
                             "/"
                           ),
@@ -70,8 +70,8 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                           {
                             key: "name",
                             className: crumb.isLast
-                              ? "text-gray-900 font-medium"
-                              : "hover:text-gray-700",
+                              ? "breadcrumb-current"
+                              : "breadcrumb-link",
                           },
                           crumb.name
                         ),
@@ -86,15 +86,15 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
               "div",
               {
                 key: "title-section",
-                className: "mb-6",
+                className: "page-title-section",
               },
               React.createElement(
                 "h1",
                 {
                   key: "title",
-                  className: "text-3xl md:text-4xl font-bold text-gray-900",
+                  className: "page-title",
                 },
-                title || "Category"
+                breadcrumbs[breadcrumbs.length - 1].name || "Category"
               )
             ),
           ]
@@ -106,7 +106,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
         "div",
         {
           key: "articles",
-          className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
+          className: "container",
         },
         [
           // Results count
@@ -115,12 +115,12 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
               "div",
               {
                 key: "results-count",
-                className: "flex items-center justify-between mb-6",
+                className: "results-count",
               },
               React.createElement(
                 "p",
                 {
-                  className: "text-sm text-gray-600",
+                  className: "results-text",
                 },
                 [
                   "Showing ",
@@ -128,7 +128,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                     "span",
                     {
                       key: "current-count",
-                      className: "font-medium",
+                      className: "results-number",
                     },
                     articles.length.toString()
                   ),
@@ -137,7 +137,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                     "span",
                     {
                       key: "total-count",
-                      className: "font-medium",
+                      className: "results-number",
                     },
                     totalCount.toString()
                   ),
@@ -152,7 +152,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                 "div",
                 {
                   key: "article-grid",
-                  className: "responsive-grid",
+                  className: "articles-grid",
                 },
                 articles.map((article, index) =>
                   React.createElement(ArticleCard, {
@@ -166,21 +166,21 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                 "div",
                 {
                   key: "empty-state",
-                  className: "text-center py-12",
+                  className: "empty-state",
                 },
                 [
                   React.createElement(
                     "div",
                     {
                       key: "empty-content",
-                      className: "max-w-md mx-auto",
+                      className: "empty-content",
                     },
                     [
                       React.createElement(
                         "h3",
                         {
                           key: "empty-title",
-                          className: "text-lg font-medium text-gray-900 mb-2",
+                          className: "empty-title",
                         },
                         "No articles found"
                       ),
@@ -188,7 +188,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                         "p",
                         {
                           key: "empty-description",
-                          className: "text-gray-500",
+                          className: "empty-description",
                         },
                         "There are no articles in this category yet."
                       ),

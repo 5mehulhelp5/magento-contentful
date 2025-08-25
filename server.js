@@ -15,6 +15,9 @@ const { submitToMagento } = require("./src/utils/magentoAPI");
 const app = express();
 app.use(express.json());
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Contentful client setup
 const contentfulClient = createClient({
   space: process.env.CONTENTFUL_SPACE_ID,
@@ -30,148 +33,7 @@ if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
   );
 }
 
-// Basic CSS for styling
-const basicCSS = `
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 0;
-    background-color: #ffffff;
-  }
-  
-  .min-h-screen { min-height: 100vh; }
-  .bg-white { background-color: #ffffff; }
-  .bg-gray-50 { background-color: #f9fafb; }
-  .bg-green-50 { background-color: #f0fdf4; }
-  .text-gray-900 { color: #111827; }
-  .text-gray-700 { color: #374151; }
-  .text-gray-600 { color: #4b5563; }
-  .text-gray-500 { color: #6b7280; }
-  .text-green-600 { color: #16a34a; }
-  .text-green-700 { color: #15803d; }
-  .max-w-4xl { max-width: 896px; }
-  .mx-auto { margin-left: auto; margin-right: auto; }
-  .px-4 { padding-left: 16px; padding-right: 16px; }
-  .px-6 { padding-left: 24px; padding-right: 24px; }
-  .px-8 { padding-left: 32px; padding-right: 32px; }
-  .py-8 { padding-top: 32px; padding-bottom: 32px; }
-  .py-12 { padding-top: 48px; padding-bottom: 48px; }
-  .mb-4 { margin-bottom: 16px; }
-  .mb-6 { margin-bottom: 24px; }
-  .mt-8 { margin-top: 32px; }
-  .mt-6 { margin-top: 24px; }
-  .mt-4 { margin-top: 16px; }
-  .my-6 { margin-top: 24px; margin-bottom: 24px; }
-  .my-8 { margin-top: 32px; margin-bottom: 32px; }
-  .text-4xl { font-size: 36px; line-height: 40px; }
-  .text-3xl { font-size: 30px; line-height: 36px; }
-  .text-2xl { font-size: 24px; line-height: 32px; }
-  .text-xl { font-size: 20px; line-height: 28px; }
-  .text-lg { font-size: 18px; line-height: 28px; }
-  .text-base { font-size: 16px; line-height: 24px; }
-  .text-sm { font-size: 14px; line-height: 20px; }
-  .text-xs { font-size: 12px; line-height: 16px; }
-  .font-medium { font-weight: 500; }
-  .font-semibold { font-weight: 600; }
-  .font-bold { font-weight: 700; }
-  .leading-relaxed { line-height: 1.625; }
-  .leading-tight { line-height: 1.25; }
-  .underline { text-decoration: underline; }
-  .italic { font-style: italic; }
-  .rounded-lg { border-radius: 8px; }
-  .rounded-full { border-radius: 9999px; }
-  .border { border-width: 1px; }
-  .border-gray-200 { border-color: #e5e7eb; }
-  .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-  .hover\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-  .hover\:border-green-600:hover { border-color: #16a34a; }
-  .overflow-hidden { overflow: hidden; }
-  .bg-gray-100 { background-color: #f3f4f6; }
-  .bg-gray-200 { background-color: #e5e7eb; }
-  .text-gray-400 { color: #9ca3af; }
-  .w-8 { width: 32px; }
-  .h-8 { height: 32px; }
-  .h-40 { height: 160px; }
-  .p-4 { padding: 16px; }
-  .px-3 { padding-left: 12px; padding-right: 12px; }
-  .py-0\.5 { padding-top: 2px; padding-bottom: 2px; }
-  .mb-2 { margin-bottom: 8px; }
-  .justify-between { justify-content: space-between; }
-  .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-  .transition-colors { transition-property: color, background-color, border-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-  .transition-transform { transition-property: transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-  .duration-200 { transition-duration: 200ms; }
-  .group:hover .group-hover\:scale-105 { transform: scale(1.05); }
-  .group:hover .group-hover\:text-green-600 { color: #16a34a; }
-  .inline-flex { display: inline-flex; }
-  .relative { position: relative; }
-  .block { display: block; }
-  .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-  .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-  .grid { display: grid !important; }
-  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
-  .gap-6 { gap: 24px !important; }
-  .overflow-x-auto { overflow-x: auto; }
-  .object-cover { object-fit: cover; }
-  .max-w-full { max-width: 100%; }
-  .h-auto { height: auto; }
-  .h-96 { height: 384px; }
-  .w-full { width: 100%; }
-  .w-full { width: 100%; }
-  .h-full { height: 100%; }
-  .prose { color: #374151; }
-  .prose h1 { font-size: 36px; font-weight: 500; margin-bottom: 24px; }
-  .prose h2 { font-size: 30px; font-weight: 500; margin-bottom: 16px; margin-top: 32px; }
-  .prose h3 { font-size: 24px; font-weight: 500; margin-bottom: 12px; margin-top: 24px; }
-  .prose p { margin-bottom: 16px; line-height: 1.625; }
-  .prose ul { list-style-type: disc; margin-left: 24px; margin-bottom: 16px; }
-  .prose ol { list-style-type: decimal; margin-left: 24px; margin-bottom: 16px; }
-  .prose li { margin-bottom: 8px; }
-  .prose blockquote { border-left: 4px solid #16a34a; padding-left: 16px; padding-top: 8px; padding-bottom: 8px; margin-bottom: 16px; font-style: italic; color: #4b5563; background-color: #f0fdf4; }
-  .prose code { background-color: #f3f4f6; border-radius: 4px; padding: 2px 4px; font-size: 14px; font-family: Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace; }
-  .prose table { min-width: 100%; border-collapse: collapse; border: 1px solid #d1d5db; border-radius: 8px; }
-  .prose th { padding: 12px 16px; text-align: left; font-weight: 500; background-color: #f0fdf4; border-bottom: 1px solid #d1d5db; }
-  .prose td { padding: 12px 16px; border-bottom: 1px solid #d1d5db; }
-  .prose tr:nth-child(even) { background-color: #f9fafb; }
-  .prose tr:hover { background-color: #f3f4f6; }
-  .prose strong { font-weight: 600; }
-  .prose em { font-style: italic; }
-  .prose u { text-decoration: underline; }
-  .prose hr { border-color: #d1d5db; margin: 32px 0; }
-  .prose a { color: #16a34a; text-decoration: underline; }
-  .prose a:hover { color: #15803d; }
-  .prose img { border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin: 0 auto; }
-  .prose .text-center { text-align: center; }
-  .prose .mt-2 { margin-top: 8px; }
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  
-  /* Custom responsive grid classes */
-  .responsive-grid {
-    display: grid !important;
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-    gap: 24px !important;
-  }
-  
-  @media (min-width: 640px) {
-    .sm\:px-6 { padding-left: 24px; padding-right: 24px; }
-  }
-  
-  @media (min-width: 768px) {
-    .responsive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-    .md\:text-5xl { font-size: 48px; line-height: 1; }
-  }
-  
-  @media (min-width: 1024px) {
-    .lg\:px-8 { padding-left: 32px; padding-right: 32px; }
-  }
-  
-  @media (min-width: 1280px) {
-    .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-  }
-`;
+// CSS is now served as an external file from /public/styles.css
 
 // Function to render page to static HTML
 async function renderPageToStatic(PageComponent, props = {}) {
@@ -183,7 +45,7 @@ async function renderPageToStatic(PageComponent, props = {}) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${props.title || "Page"}</title>
-    <style>${basicCSS}</style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     ${html}
@@ -760,7 +622,7 @@ app.get("/", (req, res) => {
     <html>
       <head>
         <title>Contentful Express Renderer</title>
-        <style>${basicCSS}</style>
+        <link rel="stylesheet" href="/styles.css">
       </head>
       <body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
         <h1>Contentful Express Renderer</h1>

@@ -1,0 +1,17 @@
+{
+  "watch": [
+    "server.js",
+    "src/**/*",
+    "public/**/*.css"
+  ],
+  "ext": "js,jsx,css",
+  "ignore": [
+    "node_modules/**/*",
+    "output/**/*",
+    ".git"
+  ],
+  "exec": "node server.js",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
