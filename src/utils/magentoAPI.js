@@ -528,6 +528,26 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
       }
     }
 
+    // Make the page searchable via database if successful
+    if (result.success && finalMagentoId) {
+      try {
+        const MagentoDatabase = require('./database');
+        const db = new MagentoDatabase();
+        const identifier = pageData.identifier || fallbackIdentifier;
+        const searchableResult = await db.setCmsPageSearchable(identifier, 1);
+        await db.disconnect();
+        
+        if (searchableResult.success) {
+          console.log(`✅ Made category page searchable: ${identifier}`);
+        } else {
+          console.log(`⚠️  Warning: Could not make category page searchable: ${searchableResult.message}`);
+        }
+      } catch (error) {
+        console.log(`⚠️  Warning: Could not make category page searchable: ${error.message}`);
+        // Don't fail the whole operation if searchable update fails
+      }
+    }
+
     // Handle the result
     if (result.success) {
       console.log(`✅ Successfully ${action} Magento page for category "${title}"`);
