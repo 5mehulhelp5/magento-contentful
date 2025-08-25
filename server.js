@@ -778,11 +778,15 @@ app.get("/", (req, res) => {
           <li>/preview/article/[entryId] - Preview an article</li>
           <li>/render/article/[entryId] - Render and save article to output folder</li>
           <li><strong>/render-and-submit/[entryId] (POST)</strong> - Render article and submit to Magento</li>
+          <li>/preview/category/[categoryId] - Preview a category list page</li>
+          <li><strong>/render-and-submit-category/[categoryId] (POST)</strong> - Render category page and submit to Magento</li>
         </ul>
         
         <h2>Example Usage:</h2>
         <p>To preview an article, use: <code>/preview/article/YOUR_ENTRY_ID</code></p>
         <p>To render and save an article, use: <code>/render/article/YOUR_ENTRY_ID</code></p>
+        <p>To preview a category page, use: <code>/preview/category/YOUR_CATEGORY_ID</code></p>
+        <p>To render and submit to Magento, use: <code>POST /render-and-submit-category/YOUR_CATEGORY_ID</code></p>
         <p>To render and submit to Magento, use: <code>POST /render-and-submit/YOUR_ENTRY_ID</code></p>
         
         <h2>Configuration:</h2>
