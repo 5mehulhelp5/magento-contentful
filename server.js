@@ -34,10 +34,33 @@ if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
 }
 
 // CSS is now served as an external file from /public/styles.css
+let cachedCSS = null;
+
+// Helper function to read CSS file contents
+async function getCSSContents() {
+  if (cachedCSS === null) {
+    try {
+      cachedCSS = await fs.readFile(path.join(__dirname, 'public', 'styles.css'), 'utf8');
+    } catch (error) {
+      console.error('Error reading CSS file:', error);
+      cachedCSS = ''; // Fallback to empty string
+    }
+  }
+  return cachedCSS;
+}
 
 // Function to render page to static HTML
-async function renderPageToStatic(PageComponent, props = {}) {
+async function renderPageToStatic(PageComponent, props = {}, options = {}) {
+  const { inlineCSS = false } = options;
   const html = renderToStaticMarkup(React.createElement(PageComponent, props));
+
+  let cssContent = '';
+  if (inlineCSS) {
+    const cssText = await getCSSContents();
+    cssContent = `<style>${cssText}</style>`;
+  } else {
+    cssContent = `<link rel="stylesheet" href="/styles.css">`;
+  }
 
   const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -45,7 +68,7 @@ async function renderPageToStatic(PageComponent, props = {}) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${props.title || "Page"}</title>
-    <link rel="stylesheet" href="/styles.css">
+    ${cssContent}
 </head>
 <body>
     ${html}
@@ -309,7 +332,7 @@ app.post("/render-and-submit/:entryId", async (req, res) => {
     const { html } = await renderPageToStatic(PageComponent, {
       data: contentfulEntry.fields,
       title: contentfulEntry.fields.title,
-    });
+    }, { inlineCSS: true });
 
     // Save to output directory
     await fs.mkdir("./output", { recursive: true });
@@ -491,7 +514,7 @@ app.post("/render-and-submit-category/:categoryId", async (req, res) => {
       articles,
       totalCount: total,
       title: `${categoryData.fields?.title || "Category"} - Articles`,
-    });
+    }, { inlineCSS: true });
 
     // Save to output directory
     await fs.mkdir("./output", { recursive: true });
