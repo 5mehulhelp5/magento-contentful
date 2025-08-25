@@ -17,6 +17,9 @@ body {
   color: #111827;
 }
 
+/* Hide default breadcrumbs */
+.top-container
+
 /* Layout components */
 .page-layout {
   min-height: 100vh;
@@ -124,8 +127,9 @@ body {
 }
 
 .article-card-title {
+  font-family: "Geograph", sans-serif;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
   margin: 0 0 8px 0;
   line-height: 1.25;
@@ -205,8 +209,9 @@ body {
 }
 
 .page-title {
+  font-family: "RecklessNeue", serif;
   font-size: 40px;
-  font-weight: 700;
+  font-weight: 500;
   color: #111827;
   margin: 0 0 8px 0;
   line-height: 1.2;

@@ -94,7 +94,8 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                   key: "title",
                   className: "page-title",
                 },
-                breadcrumbs[breadcrumbs.length - 1].name || "Category"
+                "Garden Guide: " + breadcrumbs[breadcrumbs.length - 1].name ||
+                  "Category"
               )
             ),
           ]

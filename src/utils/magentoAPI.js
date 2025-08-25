@@ -468,69 +468,85 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
   };
 
   let result;
+  let action;
+  let finalMagentoId;
   const contentfulMgmt = new ContentfulManagement();
 
   try {
     if (existingMagentoId) {
-      // Update existing page
+      // We have a Magento ID, try to update the existing page
       console.log(`Updating existing Magento page with ID: ${existingMagentoId}`);
-      result = await createOrUpdateCmsPage(pageData, 'PUT', existingMagentoId);
       
-      if (result.success) {
-        console.log(`✅ Successfully updated Magento page ${existingMagentoId} for category "${title}"`);
-        return {
-          success: true,
-          action: 'updated',
-          identifier: result.data.identifier || fallbackIdentifier,
-          magentoId: existingMagentoId,
-          status: result.data.active ? 'active' : 'inactive',
-          title: title
-        };
+      // First verify the page still exists
+      const existingPage = await getCmsPageById(existingMagentoId);
+      
+      if (existingPage) {
+        // Page exists, update it using the ID
+        result = await createOrUpdateCmsPage(pageData, 'PUT', existingMagentoId);
+        action = 'updated';
+        finalMagentoId = existingMagentoId;
       } else {
-        console.log(`❌ Failed to update Magento page: ${result.error}`);
-        return {
-          success: false,
-          action: 'update_failed',
-          error: result.error,
-          title: title
-        };
+        // Page no longer exists in Magento, create a new one
+        console.log(`⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`);
+        pageData.identifier = fallbackIdentifier;
+        result = await createOrUpdateCmsPage(pageData, 'POST');
+        action = 'recreated';
+        finalMagentoId = result.success ? result.data.id : null;
       }
     } else {
-      // Create new page
-      console.log(`Creating new Magento page for category "${title}"`);
-      pageData.identifier = fallbackIdentifier;
+      // No Magento ID exists, check if a page with the identifier already exists (legacy check)
+      console.log(`Checking if Magento page exists with identifier: ${fallbackIdentifier}`);
+      const existingPage = await getCmsPageByIdentifier(fallbackIdentifier);
       
-      result = await createOrUpdateCmsPage(pageData, 'POST');
-      
-      if (result.success && result.data.id) {
-        const newMagentoId = result.data.id.toString();
-        console.log(`✅ Successfully created Magento page with ID: ${newMagentoId} for category "${title}"`);
+      if (existingPage) {
+        // Page exists with this identifier, update it and save the ID back to Contentful
+        console.log(`Found existing page with identifier ${fallbackIdentifier}, updating and saving ID`);
+        result = await createOrUpdateCmsPage(pageData, 'PUT', existingPage.id);
+        action = 'updated';
+        finalMagentoId = existingPage.id.toString();
         
-        // Update Contentful with the new Magento ID
-        const updateResult = await contentfulMgmt.updateCategoryWithMagentoId(categoryData.sys.id, newMagentoId);
-        
+        // Save the discovered Magento ID back to Contentful
+        const updateResult = await contentfulMgmt.updateCategoryWithMagentoId(categoryData.sys.id, finalMagentoId);
         if (!updateResult.success) {
-          console.warn(`⚠️  Created Magento page but failed to update Contentful: ${updateResult.error}`);
+          console.warn(`⚠️  Updated Magento page but failed to save ID to Contentful: ${updateResult.error}`);
         }
-        
-        return {
-          success: true,
-          action: 'created',
-          identifier: result.data.identifier || fallbackIdentifier,
-          magentoId: newMagentoId,
-          status: result.data.active ? 'active' : 'inactive',
-          title: title,
-          contentfulUpdate: updateResult
-        };
       } else {
-        console.log(`❌ Failed to create Magento page: ${result.error}`);
-        return {
-          success: false,
-          action: 'create_failed',
-          error: result.error,
-          title: title
-        };
+        // No existing page found, create a new one
+        console.log(`Creating new Magento page for category "${title}"`);
+        pageData.identifier = fallbackIdentifier;
+        result = await createOrUpdateCmsPage(pageData, 'POST');
+        action = 'created';
+        finalMagentoId = result.success ? result.data.id : null;
+        
+        if (finalMagentoId) {
+          // Update Contentful with the new Magento ID
+          const updateResult = await contentfulMgmt.updateCategoryWithMagentoId(categoryData.sys.id, finalMagentoId.toString());
+          if (!updateResult.success) {
+            console.warn(`⚠️  Created Magento page but failed to update Contentful: ${updateResult.error}`);
+          }
+        }
       }
+    }
+
+    // Handle the result
+    if (result.success) {
+      console.log(`✅ Successfully ${action} Magento page for category "${title}"`);
+      return {
+        success: true,
+        action: action,
+        identifier: result.data.identifier || fallbackIdentifier,
+        magentoId: finalMagentoId,
+        status: result.data.active ? 'active' : 'inactive',
+        title: title
+      };
+    } else {
+      console.log(`❌ Failed to ${action} Magento page: ${result.error}`);
+      return {
+        success: false,
+        action: `${action}_failed`,
+        error: result.error,
+        title: title
+      };
     }
   } catch (error) {
     console.error(`❌ Error submitting category to Magento:`, error);
