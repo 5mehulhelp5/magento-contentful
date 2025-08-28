@@ -264,12 +264,13 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       .replace(/^[-\/]+|[-\/]+$/g, ""); // Remove leading/trailing hyphens or slashes
   }
 
+  // Create fallback URL structure with null checking
+  const categoryTitle = contentfulEntry.fields.mainCategory?.fields?.title || "uncategorized";
+  const articleSlug = contentfulEntry.fields.newSlug || contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
+  
   const frontendUrl = existingFrontendUrl
     ? existingFrontendUrl
-    : "garden-guide/" +
-      slugify(contentfulEntry.fields.mainCategory.fields.title) +
-      "/" +
-      contentfulEntry.fields.slug;
+    : "garden-guide/" + slugify(categoryTitle) + "/" + articleSlug;
 
   console.log("NEW FRONTEND URL");
   console.log(frontendUrl);
@@ -349,12 +350,13 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
     }
   }
 
-  // If successful, save the Magento ID back to Contentful (if needed) and make page searchable
+  // If successful, save the Magento ID and frontend URL back to Contentful (if needed) and make page searchable
   if (result.success && finalMagentoId) {
+    const contentfulMgmt = new ContentfulManagement();
+
     // Save Magento ID back to Contentful if we don't already have it or if it changed
     if (!existingMagentoId || existingMagentoId !== finalMagentoId) {
       try {
-        const contentfulMgmt = new ContentfulManagement();
         const updateResult = await contentfulMgmt.updateEntryWithMagentoId(
           contentfulEntry.sys.id,
           finalMagentoId
@@ -377,11 +379,37 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       }
     }
 
+    // Save frontend URL back to Contentful if we generated a new one
+    if (!existingFrontendUrl) {
+      try {
+        const frontendUrlUpdateResult =
+          await contentfulMgmt.updateEntryWithFrontendUrl(
+            contentfulEntry.sys.id,
+            frontendUrl
+          );
+
+        if (frontendUrlUpdateResult.success) {
+          console.log(
+            `✅ Saved generated frontend URL ${frontendUrl} back to Contentful entry ${contentfulEntry.sys.id}`
+          );
+        } else {
+          console.log(
+            `⚠️  Warning: Could not save frontend URL back to Contentful: ${frontendUrlUpdateResult.message}`
+          );
+        }
+      } catch (error) {
+        console.log(
+          `⚠️  Warning: Could not save frontend URL back to Contentful: ${error.message}`
+        );
+        // Don't fail the whole operation if Contentful update fails
+      }
+    }
+
     // Make the page searchable via database
     try {
       const MagentoDatabase = require("./database");
       const db = new MagentoDatabase();
-      const identifier = pageData.identifier || fallbackIdentifier;
+      const identifier = pageData.identifier;
       const searchableResult = await db.setCmsPageSearchable(identifier, 1);
       await db.disconnect();
 
@@ -403,7 +431,7 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   return {
     ...result,
     action: action,
-    identifier: pageData.identifier || fallbackIdentifier,
+    identifier: pageData.identifier,
     title: title,
     magentoId: finalMagentoId,
   };
@@ -544,7 +572,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         console.log(
           `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
         );
-        pageData.identifier = fallbackIdentifier;
+        pageData.identifier = pageData.identifier;
         result = await createOrUpdateCmsPage(pageData, "POST");
         action = "recreated";
         finalMagentoId = result.success ? result.data.id : null;
@@ -552,14 +580,14 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
     } else {
       // No Magento ID exists, check if a page with the identifier already exists (legacy check)
       console.log(
-        `Checking if Magento page exists with identifier: ${fallbackIdentifier}`
+        `Checking if Magento page exists with identifier: ${pageData.identifier}`
       );
-      const existingPage = await getCmsPageByIdentifier(fallbackIdentifier);
+      const existingPage = await getCmsPageByIdentifier(pageData.identifier);
 
       if (existingPage) {
         // Page exists with this identifier, update it and save the ID back to Contentful
         console.log(
-          `Found existing page with identifier ${fallbackIdentifier}, updating and saving ID`
+          `Found existing page with identifier ${pageData.identifier}, updating and saving ID`
         );
         result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
         action = "updated";
@@ -578,7 +606,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
       } else {
         // No existing page found, create a new one
         console.log(`Creating new Magento page for category "${title}"`);
-        pageData.identifier = fallbackIdentifier;
+        pageData.identifier = pageData.identifier;
         result = await createOrUpdateCmsPage(pageData, "POST");
         action = "created";
         finalMagentoId = result.success ? result.data.id : null;
@@ -603,7 +631,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
       try {
         const MagentoDatabase = require("./database");
         const db = new MagentoDatabase();
-        const identifier = pageData.identifier || fallbackIdentifier;
+        const identifier = pageData.identifier || pageData.identifier;
         const searchableResult = await db.setCmsPageSearchable(identifier, 1);
         await db.disconnect();
 
@@ -630,7 +658,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
       return {
         success: true,
         action: action,
-        identifier: result.data.identifier || fallbackIdentifier,
+        identifier: result.data.identifier || pageData.identifier,
         magentoId: finalMagentoId,
         status: result.data.active ? "active" : "inactive",
         title: title,

@@ -180,6 +180,55 @@ class ContentfulManagement {
       return null;
     }
   }
+
+  /**
+   * Update a Contentful entry with the frontend URL
+   * @param {string} entryId - Contentful entry ID
+   * @param {string} frontendUrl - Frontend URL to save
+   * @returns {Promise<Object>} Result of the operation
+   */
+  async updateEntryWithFrontendUrl(entryId, frontendUrl) {
+    try {
+      console.log(`Updating Contentful entry ${entryId} with frontend URL: ${frontendUrl}`);
+      
+      const space = await this.client.getSpace(this.spaceId);
+      const environment = await space.getEnvironment(this.environmentId);
+      
+      // Get the entry
+      const entry = await environment.getEntry(entryId);
+      
+      // Update the frontendUrl field
+      entry.fields.frontendUrl = {
+        'en-US': frontendUrl
+      };
+      
+      // Save the entry
+      const updatedEntry = await entry.update();
+      
+      // Publish the entry to make the change live
+      await updatedEntry.publish();
+      
+      console.log(`✅ Successfully updated Contentful entry ${entryId} with frontend URL: ${frontendUrl}`);
+      
+      return {
+        success: true,
+        entryId: entryId,
+        frontendUrl: frontendUrl,
+        message: 'Entry updated with frontend URL'
+      };
+      
+    } catch (error) {
+      console.error(`❌ Failed to update Contentful entry ${entryId} with frontend URL:`, error);
+      
+      return {
+        success: false,
+        entryId: entryId,
+        frontendUrl: frontendUrl,
+        error: error.message,
+        message: 'Failed to update entry with frontend URL'
+      };
+    }
+  }
 }
 
 module.exports = ContentfulManagement;
