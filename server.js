@@ -16,7 +16,7 @@ const app = express();
 app.use(express.json());
 
 // Serve static files from public directory
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 // Contentful client setup
 const contentfulClient = createClient({
@@ -40,10 +40,13 @@ let cachedCSS = null;
 async function getCSSContents() {
   if (cachedCSS === null) {
     try {
-      cachedCSS = await fs.readFile(path.join(__dirname, 'public', 'styles.css'), 'utf8');
+      cachedCSS = await fs.readFile(
+        path.join(__dirname, "public", "styles.css"),
+        "utf8"
+      );
     } catch (error) {
-      console.error('Error reading CSS file:', error);
-      cachedCSS = ''; // Fallback to empty string
+      console.error("Error reading CSS file:", error);
+      cachedCSS = ""; // Fallback to empty string
     }
   }
   return cachedCSS;
@@ -54,7 +57,7 @@ async function renderPageToStatic(PageComponent, props = {}, options = {}) {
   const { inlineCSS = false } = options;
   const html = renderToStaticMarkup(React.createElement(PageComponent, props));
 
-  let cssContent = '';
+  let cssContent = "";
   if (inlineCSS) {
     const cssText = await getCSSContents();
     cssContent = `<style>${cssText}</style>`;
@@ -203,6 +206,8 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
         "fields.listImageAlt",
         "fields.publishedAt",
         "fields.metaDescription",
+        "fields.slug",
+        "fields.newSlug",
       ].join(","),
     });
 
@@ -329,10 +334,14 @@ app.post("/render-and-submit/:entryId", async (req, res) => {
     }
 
     const PageComponent = require("./src/pages/ArticlePage.jsx").default;
-    const { html } = await renderPageToStatic(PageComponent, {
-      data: contentfulEntry.fields,
-      title: contentfulEntry.fields.title,
-    }, { inlineCSS: true });
+    const { html } = await renderPageToStatic(
+      PageComponent,
+      {
+        data: contentfulEntry.fields,
+        title: contentfulEntry.fields.title,
+      },
+      { inlineCSS: true }
+    );
 
     // Save to output directory
     await fs.mkdir("./output", { recursive: true });
@@ -509,12 +518,16 @@ app.post("/render-and-submit-category/:categoryId", async (req, res) => {
 
     const CategoryListPage =
       require("./src/pages/CategoryListPage.jsx").default;
-    const { html } = await renderPageToStatic(CategoryListPage, {
-      categoryData,
-      articles,
-      totalCount: total,
-      title: `${categoryData.fields?.title || "Category"} - Articles`,
-    }, { inlineCSS: true });
+    const { html } = await renderPageToStatic(
+      CategoryListPage,
+      {
+        categoryData,
+        articles,
+        totalCount: total,
+        title: `${categoryData.fields?.title || "Category"} - Articles`,
+      },
+      { inlineCSS: true }
+    );
 
     // Save to output directory
     await fs.mkdir("./output", { recursive: true });

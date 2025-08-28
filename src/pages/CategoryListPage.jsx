@@ -14,7 +14,18 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
   };
 
   const breadcrumbs = createBreadcrumbs(title);
-  console.log(breadcrumbs);
+
+  function slugifyCategory(input) {
+    return input.trim().toLowerCase().replace(/\s+/g, "-");
+  }
+
+  function formatCategoryArray(categories) {
+    return categories
+      .map((cat) => cat.name.trim().toLowerCase().replace(/\s+/g, "-"))
+      .join("/");
+  }
+
+  const linkBase = slugifyCategory(breadcrumbs[breadcrumbs.length - 1].name); //formatCategoryArray(breadcrumbs);
 
   return React.createElement(
     "div",
@@ -159,6 +170,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                   React.createElement(ArticleCard, {
                     key: article.sys?.id || index,
                     article: article,
+                    linkBase: linkBase,
                   })
                 )
               )

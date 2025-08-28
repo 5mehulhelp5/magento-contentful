@@ -138,3 +138,4 @@ DATABASE_HOST/USER/PASSWORD/NAME - MySQL connection (optional)
 - Webhook endpoints available for automated Contentful → Magento sync
 - Bulk sync capabilities for large content migrations
 - Database integration optional but recommended for advanced operations
+- I usually have the server running with nodemon on 3000. Always try it before starting your own server.

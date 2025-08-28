@@ -3,7 +3,15 @@ import React from "react";
 const ArticleCard = ({ article, linkBase = "/preview/article" }) => {
   const {
     sys,
-    fields: { title, featuredImage, imageAlt, listImage, listImageAlt } = {},
+    fields: {
+      title,
+      featuredImage,
+      imageAlt,
+      listImage,
+      listImageAlt,
+      newSlug,
+      slug,
+    } = {},
   } = article || {};
 
   // Use list image if available, fallback to featured image
@@ -17,13 +25,8 @@ const ArticleCard = ({ article, linkBase = "/preview/article" }) => {
   );
 
   // Create article URL
-  const articleUrl = `${linkBase}/${sys?.id}`;
-
-  // Truncate text for card display
-  const truncateText = (text, maxLength = 120) => {
-    if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + "...";
-  };
+  //const articleUrl = `${linkBase}/${sys?.id}`;
+  const articleUrl = `${linkBase}/${newSlug ? newSlug : slug}`;
 
   return React.createElement(
     "a",
