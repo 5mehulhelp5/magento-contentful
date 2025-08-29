@@ -1,97 +1,13 @@
-import React from "react";
+const { generateArticleCardHTML } = require("../utils/articleCardTemplate");
 
+/**
+ * ArticleCard - Vanilla HTML article card generator
+ * @param {Object} article - Contentful article object
+ * @param {string} linkBase - Base URL for article links
+ * @returns {string} HTML string for the article card
+ */
 const ArticleCard = ({ article, linkBase = "/preview/article" }) => {
-  const {
-    sys,
-    fields: {
-      title,
-      featuredImage,
-      imageAlt,
-      listImage,
-      listImageAlt,
-      newSlug,
-      slug,
-    } = {},
-  } = article || {};
-
-  // Use list image if available, fallback to featured image
-  const cardImage = listImage || featuredImage;
-  const cardImageAlt = listImageAlt || imageAlt || title;
-
-  // Check if the article is a Growing Guide article.
-  // I'm adding this because growing guide images need a specific position attribute.
-  const isGrowingGuide = ["Learn About", "Growing Guide"].some((substring) =>
-    title.includes(substring)
-  );
-
-  // Create article URL
-  //const articleUrl = `${linkBase}/${sys?.id}`;
-  const articleUrl = `${linkBase}/${newSlug ? newSlug : slug}`;
-
-  return React.createElement(
-    "a",
-    {
-      href: articleUrl,
-      className: "article-card",
-    },
-    [
-      // Image section
-      React.createElement(
-        "div",
-        {
-          key: "image",
-          className: isGrowingGuide
-            ? "article-card-image growing-guide-image"
-            : "article-card-image",
-        },
-        cardImage
-          ? React.createElement("img", {
-              src: cardImage.fields?.file?.url?.startsWith("//")
-                ? `https:${cardImage.fields.file.url}`
-                : cardImage.fields?.file?.url,
-              alt: cardImageAlt || title,
-            })
-          : React.createElement(
-              "div",
-              {
-                className: "article-card-placeholder",
-              },
-              React.createElement(
-                "svg",
-                {
-                  fill: "currentColor",
-                  viewBox: "0 0 20 20",
-                },
-                React.createElement("path", {
-                  fillRule: "evenodd",
-                  d: "M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z",
-                  clipRule: "evenodd",
-                })
-              )
-            )
-      ),
-
-      // Content section
-      React.createElement(
-        "div",
-        {
-          key: "content",
-          className: "article-card-content",
-        },
-        [
-          // Title
-          React.createElement(
-            "h3",
-            {
-              key: "title",
-              className: "article-card-title",
-            },
-            title || "Untitled Article"
-          ),
-        ]
-      ),
-    ]
-  );
+  return generateArticleCardHTML(article, linkBase);
 };
 
-export default ArticleCard;
+module.exports = ArticleCard;

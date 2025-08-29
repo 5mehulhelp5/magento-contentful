@@ -52,17 +52,75 @@ async function getCSSContents() {
   return cachedCSS;
 }
 
+// Helper function to inline JavaScript files
+async function inlineJavaScriptFiles(html) {
+  try {
+    // Find all script tags with src attributes (more flexible regex)
+    const scriptTagRegex = /<script[^>]*src=["']([^"']+)["'][^>]*><\/script>/g;
+    let processedHtml = html;
+    const matches = [...html.matchAll(scriptTagRegex)];
+
+    console.log(`Found ${matches.length} script tags to potentially inline`);
+
+    for (const match of matches) {
+      const fullTag = match[0];
+      const srcPath = match[1];
+
+      console.log(`Processing script tag: ${srcPath}`);
+
+      // Only inline local scripts (starting with / or relative paths)
+      if (srcPath.startsWith("/") || !srcPath.includes("://")) {
+        try {
+          // Remove query parameters and leading slash for file path
+          const cleanPath = srcPath.split("?")[0].replace(/^\//, "");
+          const jsFilePath = path.join(__dirname, "public", cleanPath);
+
+          console.log(`Attempting to inline JavaScript file: ${jsFilePath}`);
+          const jsContent = await fs.readFile(jsFilePath, "utf8");
+
+          // Replace the external script tag with an inline script
+          const inlineScript = `<script>${jsContent}</script>`;
+          processedHtml = processedHtml.replace(fullTag, inlineScript);
+          console.log(`Successfully inlined: ${cleanPath}`);
+        } catch (error) {
+          console.error(
+            `Error inlining JavaScript file ${srcPath}:`,
+            error.message
+          );
+          // Keep original script tag if inlining fails
+        }
+      } else {
+        console.log(`Skipping external script: ${srcPath}`);
+      }
+    }
+
+    return processedHtml;
+  } catch (error) {
+    console.error("Error processing JavaScript inlining:", error);
+    return html; // Return original HTML if processing fails
+  }
+}
+
 // Function to render page to static HTML
 async function renderPageToStatic(PageComponent, props = {}, options = {}) {
-  const { inlineCSS = false } = options;
-  const html = renderToStaticMarkup(React.createElement(PageComponent, props));
+  const { inlineCSS = false, inlineJS = false } = options;
+  let html = renderToStaticMarkup(React.createElement(PageComponent, props));
 
   let cssContent = "";
   if (inlineCSS) {
     const cssText = await getCSSContents();
-    cssContent = `<style>${cssText}</style>`;
+    cssContent = `<style>${cssText} .top-container{ display: none} </style>`;
   } else {
     cssContent = `<link rel="stylesheet" href="/styles.css">`;
+  }
+
+  // Inline JavaScript files if requested
+  if (inlineJS) {
+    console.log("--- HTML BEFORE JavaScript inlining ---");
+    console.log(html.substring(html.length - 1000)); // Show last 1000 chars where scripts usually are
+    html = await inlineJavaScriptFiles(html);
+    console.log("--- HTML AFTER JavaScript inlining ---");
+    console.log(html.substring(html.length - 1000)); // Show last 1000 chars after processing
   }
 
   const fullHtml = `<!DOCTYPE html>
@@ -118,6 +176,21 @@ async function getChildCategories(parentCategoryId) {
     return childCategories.items;
   } catch (error) {
     console.error("Error fetching child categories:", error);
+    return [];
+  }
+}
+
+// Get all categories for the sidebar navigation
+async function getAllCategories() {
+  try {
+    const allCategories = await contentfulClient.getEntries({
+      content_type: "category",
+      limit: 1000, // Get all categories
+    });
+    console.log(`Found ${allCategories.items.length} total categories`);
+    return allCategories.items;
+  } catch (error) {
+    console.error("Error fetching all categories:", error);
     return [];
   }
 }
@@ -477,8 +550,11 @@ app.get("/preview/category/:categoryId", async (req, res) => {
     // Fetch articles for this category
     const { items: articles, total } = await getCategoryArticles(categoryId);
 
+    // Fetch all categories for the sidebar
+    const allCategories = await getAllCategories();
+
     console.log(
-      `Preview category: ${categoryData.fields?.title} with ${articles.length} articles`
+      `Preview category: ${categoryData.fields?.title} with ${articles.length} articles and ${allCategories.length} sidebar categories`
     );
 
     const CategoryListPage =
@@ -487,6 +563,8 @@ app.get("/preview/category/:categoryId", async (req, res) => {
       categoryData,
       articles,
       totalCount: total,
+      allCategories,
+      currentCategoryId: categoryId,
       title: `${categoryData.fields?.title || "Category"} - Articles`,
     });
 
@@ -512,8 +590,11 @@ app.post("/render-and-submit-category/:categoryId", async (req, res) => {
     // Fetch articles for this category
     const { items: articles, total } = await getCategoryArticles(categoryId);
 
+    // Fetch all categories for the sidebar
+    const allCategories = await getAllCategories();
+
     console.log(
-      `Rendering category: ${categoryData.fields?.title} with ${articles.length} articles`
+      `Rendering category: ${categoryData.fields?.title} with ${articles.length} articles and ${allCategories.length} sidebar categories`
     );
 
     const CategoryListPage =
@@ -524,9 +605,11 @@ app.post("/render-and-submit-category/:categoryId", async (req, res) => {
         categoryData,
         articles,
         totalCount: total,
+        allCategories,
+        currentCategoryId: categoryId,
         title: `${categoryData.fields?.title || "Category"} - Articles`,
       },
-      { inlineCSS: true }
+      { inlineCSS: true, inlineJS: true }
     );
 
     // Save to output directory

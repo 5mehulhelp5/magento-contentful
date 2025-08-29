@@ -265,9 +265,13 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   }
 
   // Create fallback URL structure with null checking
-  const categoryTitle = contentfulEntry.fields.mainCategory?.fields?.title || "uncategorized";
-  const articleSlug = contentfulEntry.fields.newSlug || contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
-  
+  const categoryTitle =
+    contentfulEntry.fields.mainCategory?.fields?.title || "uncategorized";
+  const articleSlug =
+    contentfulEntry.fields.newSlug ||
+    contentfulEntry.fields.slug ||
+    contentfulEntry.sys.id.toLowerCase();
+
   const frontendUrl = existingFrontendUrl
     ? existingFrontendUrl
     : "garden-guide/" + slugify(categoryTitle) + "/" + articleSlug;
@@ -454,6 +458,7 @@ function extractBodyContentForMagento(fullHtml) {
   // Wrap content in a scoped container to prevent CSS conflicts
   const scopedContent = `<div class="contentful-category-page">${bodyContent}</div>`;
 
+  /*
   // Simple CSS scoping - just prefix our main classes to avoid conflicts
   if (styles) {
     styles = styles
@@ -479,7 +484,7 @@ function extractBodyContentForMagento(fullHtml) {
           );
         }
       );
-  }
+  }*/
 
   return `<style>${styles}</style>\n${scopedContent}`;
 }
@@ -728,9 +733,10 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
   const categorySlug = contentfulEntry.fields.freshdeskCategoryName
     ? slugify(contentfulEntry.fields.freshdeskCategoryName)
     : "general";
-  
-  const faqSlug = contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
-  
+
+  const faqSlug =
+    contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
+
   const frontendUrl = existingFrontendUrl
     ? existingFrontendUrl
     : `help/${categorySlug}/${faqSlug}`;
@@ -771,9 +777,9 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
   if (existingMagentoId) {
     // Update existing page logic (same as articles)
     console.log(`Updating existing Magento page with ID: ${existingMagentoId}`);
-    
+
     const existingPage = await getCmsPageById(existingMagentoId);
-    
+
     if (existingPage) {
       result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId);
       action = "updated";
@@ -811,7 +817,7 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
   // Save IDs back to Contentful if successful
   if (result.success && finalMagentoId) {
     const contentfulMgmt = new ContentfulManagement();
-    
+
     // Save Magento ID back to Contentful if needed
     if (!existingMagentoId || existingMagentoId !== finalMagentoId) {
       try {

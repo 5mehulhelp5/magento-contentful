@@ -1,7 +1,8 @@
 import React from "react";
 import ArticleCard from "../components/ArticleCard.jsx";
+import CategorySidebar from "../components/CategorySidebar.jsx";
 
-const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
+const CategoryListPage = ({ categoryData, articles = [], totalCount = 0, allCategories = [], currentCategoryId = null }) => {
   const { title } = categoryData?.fields || {};
 
   // Create breadcrumb path from category title
@@ -14,6 +15,11 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
   };
 
   const breadcrumbs = createBreadcrumbs(title);
+  
+  // Infinite scroll configuration
+  const initialArticleCount = 9;
+  const initialArticles = articles.slice(0, initialArticleCount);
+  const hasMoreArticles = articles.length > initialArticleCount;
 
   function slugifyCategory(input) {
     return input.trim().toLowerCase().replace(/\s+/g, "-");
@@ -30,16 +36,31 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
   return React.createElement(
     "div",
     {
-      className: "page-layout",
+      className: "page-layout page-with-sidebar",
     },
     [
-      // Header section
+      // Category Sidebar
+      React.createElement(CategorySidebar, {
+        key: "category-sidebar",
+        categories: allCategories,
+        currentCategoryId: currentCategoryId
+      }),
+
+      // Main content area
       React.createElement(
         "div",
         {
-          key: "header",
-          className: "page-header",
+          key: "main-content",
+          className: "main-content",
         },
+        [
+          // Header section
+          React.createElement(
+            "div",
+            {
+              key: "header",
+              className: "page-header",
+            },
         React.createElement(
           "div",
           {
@@ -141,8 +162,9 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                     {
                       key: "current-count",
                       className: "results-number",
+                      id: "current-article-count",
                     },
-                    articles.length.toString()
+                    initialArticles.length.toString()
                   ),
                   " of ",
                   React.createElement(
@@ -159,20 +181,40 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
             ),
 
           // Articles Grid
-          articles.length > 0
+          initialArticles.length > 0
             ? React.createElement(
                 "div",
                 {
                   key: "article-grid",
                   className: "articles-grid",
+                  id: "articles-grid",
                 },
-                articles.map((article, index) =>
-                  React.createElement(ArticleCard, {
-                    key: article.sys?.id || index,
-                    article: article,
-                    linkBase: linkBase,
-                  })
-                )
+                [
+                  ...initialArticles.map((article, index) => {
+                    const articleHTML = ArticleCard({ article, linkBase });
+                    return React.createElement("div", {
+                      key: article.sys?.id || index,
+                      dangerouslySetInnerHTML: { __html: articleHTML }
+                    });
+                  }),
+                  // Loading indicator for infinite scroll
+                  hasMoreArticles && React.createElement(
+                    "div",
+                    {
+                      key: "loading-indicator",
+                      id: "loading-indicator",
+                      className: "loading-indicator",
+                      style: { display: "none" }
+                    },
+                    React.createElement(
+                      "div",
+                      {
+                        className: "loading-spinner",
+                      },
+                      "Loading more articles..."
+                    )
+                  )
+                ]
               )
             : // Empty state
               React.createElement(
@@ -208,9 +250,58 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0 }) => {
                     ]
                   ),
                 ]
-              ),
+              )
         ]
       ),
+      
+      // Embed article data for infinite scroll
+      React.createElement(
+        "script",
+        {
+          key: "article-data",
+          type: "application/json",
+          id: "article-data",
+          dangerouslySetInnerHTML: {
+            __html: JSON.stringify({
+              articles: articles,
+              linkBase: linkBase,
+              initialCount: initialArticleCount,
+              totalCount: totalCount
+            })
+          }
+        }
+      ),
+      
+      // Load unified article card template
+      React.createElement(
+        "script",
+        {
+          key: "article-template-script",
+          src: `/articleCardTemplate.js?v=${Date.now()}`,
+        }
+      ),
+      
+      // Load infinite scroll JavaScript
+      React.createElement(
+        "script",
+        {
+          key: "infinite-scroll-script",
+          src: `/infiniteScroll.js?v=${Date.now()}`,
+          defer: true
+        }
+      ),
+      
+      // Load category sidebar JavaScript
+      React.createElement(
+        "script",
+        {
+          key: "category-sidebar-script",
+          src: `/categorySidebar.js?v=${Date.now()}`,
+          defer: true
+        }
+      )
+        ]
+      )
     ]
   );
 };
