@@ -683,11 +683,221 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
   }
 }
 
+/**
+ * Submit a Contentful FAQ to Magento as a CMS page
+ * @param {Object} contentfulEntry - Contentful FAQ entry object
+ * @param {string} renderedHtml - Rendered HTML content
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function submitFAQToMagento(contentfulEntry, renderedHtml) {
+  const title = contentfulEntry.fields.title || "Untitled FAQ";
+  const existingMagentoId = contentfulEntry.fields.magentoId;
+  const existingFrontendUrl = contentfulEntry.fields.frontendUrl;
+
+  console.log(`Processing FAQ: ${title}`);
+  if (existingMagentoId) {
+    console.log(`Found existing Magento ID: ${existingMagentoId}`);
+  } else {
+    console.log("No existing Magento ID found - will create new page");
+  }
+  if (existingFrontendUrl) {
+    console.log(`Found existing frontend URL: ${existingFrontendUrl}`);
+  } else {
+    console.log("No existing frontend URL found - will create new URL");
+  }
+
+  // Sanitize and validate data for Magento
+  const sanitizeString = (str) => {
+    if (!str) return "";
+    return str.replace(/[<>\/\\]/g, "").substring(0, 255);
+  };
+
+  function slugify(str) {
+    return str
+      .toLowerCase()
+      .trim()
+      .replace(/\s*\/\s*/g, "/")
+      .replace(/[^\w\s\/-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/\/+/g, "/")
+      .replace(/^[-\/]+|[-\/]+$/g, "");
+  }
+
+  // Create FAQ URL structure: help/{category}/{slug}
+  const categorySlug = contentfulEntry.fields.freshdeskCategoryName
+    ? slugify(contentfulEntry.fields.freshdeskCategoryName)
+    : "general";
+  
+  const faqSlug = contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
+  
+  const frontendUrl = existingFrontendUrl
+    ? existingFrontendUrl
+    : `help/${categorySlug}/${faqSlug}`;
+
+  console.log("FAQ FRONTEND URL");
+  console.log(frontendUrl);
+
+  // Extract just the body content for Magento
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
+  const pageData = {
+    title: sanitizeString(`FAQ: ${title}`),
+    content: magentoContent,
+    identifier: frontendUrl,
+    meta_title: sanitizeString(contentfulEntry.fields.metaTitle || title),
+    meta_description: sanitizeString(
+      contentfulEntry.fields.metaDescription || ""
+    ),
+    meta_keywords: sanitizeString(
+      contentfulEntry.fields.tags ? contentfulEntry.fields.tags.join(", ") : ""
+    ),
+    content_heading: sanitizeString(title),
+    active: 1,
+    page_layout: "cms-full-width",
+    sort_order: "200", // Lower priority than articles
+    creation_time: contentfulEntry.sys.createdAt
+      ? new Date(contentfulEntry.sys.createdAt)
+          .toISOString()
+          .slice(0, 19)
+          .replace("T", " ")
+      : new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  let result;
+  let action;
+  let finalMagentoId;
+
+  if (existingMagentoId) {
+    // Update existing page logic (same as articles)
+    console.log(`Updating existing Magento page with ID: ${existingMagentoId}`);
+    
+    const existingPage = await getCmsPageById(existingMagentoId);
+    
+    if (existingPage) {
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId);
+      action = "updated";
+      finalMagentoId = existingMagentoId;
+    } else {
+      console.log(
+        `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
+      );
+      result = await createOrUpdateCmsPage(pageData, "POST");
+      action = "recreated";
+      finalMagentoId = result.success ? result.data.id : null;
+    }
+  } else {
+    // Check for existing page by identifier
+    console.log(
+      `Checking if Magento page exists with identifier: ${frontendUrl}`
+    );
+    const existingPage = await getCmsPageByIdentifier(frontendUrl);
+
+    if (existingPage) {
+      console.log(
+        `Found existing page with identifier ${frontendUrl}, updating and saving ID`
+      );
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+      action = "updated";
+      finalMagentoId = existingPage.id;
+    } else {
+      console.log(`Creating new Magento page with identifier: ${frontendUrl}`);
+      result = await createOrUpdateCmsPage(pageData, "POST");
+      action = "created";
+      finalMagentoId = result.success ? result.data.id : null;
+    }
+  }
+
+  // Save IDs back to Contentful if successful
+  if (result.success && finalMagentoId) {
+    const contentfulMgmt = new ContentfulManagement();
+    
+    // Save Magento ID back to Contentful if needed
+    if (!existingMagentoId || existingMagentoId !== finalMagentoId) {
+      try {
+        const updateResult = await contentfulMgmt.updateEntryWithMagentoId(
+          contentfulEntry.sys.id,
+          finalMagentoId
+        );
+
+        if (updateResult.success) {
+          console.log(
+            `✅ Saved Magento ID ${finalMagentoId} back to Contentful FAQ ${contentfulEntry.sys.id}`
+          );
+        } else {
+          console.log(
+            `⚠️  Warning: Could not save Magento ID back to Contentful: ${updateResult.message}`
+          );
+        }
+      } catch (error) {
+        console.log(
+          `⚠️  Warning: Could not save Magento ID back to Contentful: ${error.message}`
+        );
+      }
+    }
+
+    // Save frontend URL back to Contentful if we generated a new one
+    if (!existingFrontendUrl) {
+      try {
+        const frontendUrlUpdateResult =
+          await contentfulMgmt.updateEntryWithFrontendUrl(
+            contentfulEntry.sys.id,
+            frontendUrl
+          );
+
+        if (frontendUrlUpdateResult.success) {
+          console.log(
+            `✅ Saved generated frontend URL ${frontendUrl} back to Contentful FAQ ${contentfulEntry.sys.id}`
+          );
+        } else {
+          console.log(
+            `⚠️  Warning: Could not save frontend URL back to Contentful: ${frontendUrlUpdateResult.message}`
+          );
+        }
+      } catch (error) {
+        console.log(
+          `⚠️  Warning: Could not save frontend URL back to Contentful: ${error.message}`
+        );
+      }
+    }
+
+    // Make the page searchable via database
+    try {
+      const MagentoDatabase = require("./database");
+      const db = new MagentoDatabase();
+      const identifier = pageData.identifier;
+      const searchableResult = await db.setCmsPageSearchable(identifier, 1);
+      await db.disconnect();
+
+      if (searchableResult.success) {
+        console.log(`✅ Made FAQ page searchable: ${identifier}`);
+      } else {
+        console.log(
+          `⚠️  Warning: Could not make FAQ page searchable: ${searchableResult.message}`
+        );
+      }
+    } catch (error) {
+      console.log(
+        `⚠️  Warning: Could not make FAQ page searchable: ${error.message}`
+      );
+    }
+  }
+
+  return {
+    ...result,
+    action: action,
+    identifier: pageData.identifier,
+    title: title,
+    magentoId: finalMagentoId,
+  };
+}
+
 module.exports = {
   getCmsPageByIdentifier,
   getCmsPageById,
   createOrUpdateCmsPage,
   submitToMagento,
   submitCategoryToMagento,
+  submitFAQToMagento,
   extractBodyContentForMagento,
 };

@@ -569,6 +569,99 @@ app.post("/render-and-submit-category/:categoryId", async (req, res) => {
   }
 });
 
+// FAQ preview endpoint
+app.get("/preview/faq/:entryId", async (req, res) => {
+  try {
+    const entryId = req.params.entryId;
+    console.log(`Previewing FAQ entry: ${entryId}`);
+
+    const contentfulEntry = await contentfulClient.getEntry(entryId);
+
+    if (contentfulEntry.sys.contentType.sys.id !== "faq") {
+      return res.status(400).json({
+        error: "Entry is not an FAQ",
+        contentType: contentfulEntry.sys.contentType.sys.id,
+      });
+    }
+
+    const FAQPage = require("./src/pages/FAQPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      FAQPage,
+      {
+        data: contentfulEntry.fields,
+        title: contentfulEntry.fields.title,
+      },
+      { inlineCSS: true }
+    );
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error previewing FAQ:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// FAQ render and submit endpoint
+app.post("/render-and-submit-faq/:entryId", async (req, res) => {
+  try {
+    const entryId = req.params.entryId;
+    console.log(`Rendering and submitting FAQ: ${entryId}`);
+
+    const contentfulEntry = await contentfulClient.getEntry(entryId);
+
+    if (contentfulEntry.sys.contentType.sys.id !== "faq") {
+      return res.status(400).json({
+        error: "Entry is not an FAQ",
+        entryId: entryId,
+        contentType: contentfulEntry.sys.contentType.sys.id,
+      });
+    }
+
+    const FAQPage = require("./src/pages/FAQPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      FAQPage,
+      {
+        data: contentfulEntry.fields,
+        title: contentfulEntry.fields.title,
+      },
+      { inlineCSS: true }
+    );
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/faq-${entryId}.html`, html);
+
+    // Submit to Magento
+    const { submitFAQToMagento } = require("./src/utils/magentoAPI");
+    const magentoResult = await submitFAQToMagento(contentfulEntry, html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `FAQ rendered and ${magentoResult.action} in Magento`,
+        entryId: entryId,
+        title: contentfulEntry.fields.title,
+        magento: {
+          action: magentoResult.action,
+          identifier: magentoResult.identifier,
+          status: magentoResult.status || 200,
+        },
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "FAQ rendered but failed to submit to Magento",
+        entryId: entryId,
+        title: contentfulEntry.fields.title,
+        error: magentoResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering and submitting FAQ:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Webhook for Contentful
 app.post("/webhook/contentful", async (req, res) => {
   try {
