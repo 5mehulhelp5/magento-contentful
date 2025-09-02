@@ -49,6 +49,17 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
 
   const hierarchy = buildCategoryHierarchy(categories);
 
+  // Helper function to determine which top-level category should be expanded
+  const shouldExpandTopLevel = (topLevelCategory) => {
+    if (!currentCategoryId) return false;
+    
+    // If the current category is this top-level category
+    if (topLevelCategory.id === currentCategoryId) return true;
+    
+    // If the current category is a child of this top-level category
+    return topLevelCategory.children.some(child => child.id === currentCategoryId);
+  };
+
   // Helper function to create category link URL
   const createCategoryUrl = (categoryId) => {
     return `/preview/category/${categoryId}`;
@@ -118,7 +129,7 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
                         {
                           key: "toggle-button",
                           className: "category-toggle",
-                          "aria-expanded": index === 0 ? "true" : "false", // First category expanded by default
+                          "aria-expanded": shouldExpandTopLevel(topLevelCategory) ? "true" : "false",
                           "aria-controls": `subcategories-${slugifyTitle(
                             topLevelCategory.title
                           )}`,
@@ -159,9 +170,9 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
                         topLevelCategory.title
                       )}`,
                       className: `subcategory-list ${
-                        index === 0 ? "expanded" : "collapsed"
+                        shouldExpandTopLevel(topLevelCategory) ? "expanded" : "collapsed"
                       }`,
-                      "aria-expanded": index === 0 ? "true" : "false",
+                      "aria-expanded": shouldExpandTopLevel(topLevelCategory) ? "true" : "false",
                     },
                     topLevelCategory.children.map((subcategory) =>
                       React.createElement(
