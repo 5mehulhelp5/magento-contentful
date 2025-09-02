@@ -28,6 +28,9 @@ class InfiniteScroll {
     
     // Set up loading indicator
     this.setupLoadingIndicator();
+    
+    // Set up Load More button
+    this.setupLoadMoreButton();
   }
 
   /**
@@ -72,6 +75,20 @@ class InfiniteScroll {
     });
 
     this.observer.observe(loadingIndicator);
+  }
+
+  /**
+   * Set up click handler for Load More button
+   */
+  setupLoadMoreButton() {
+    const loadMoreButton = document.getElementById('load-more-button');
+    if (loadMoreButton) {
+      loadMoreButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.loadMoreArticles();
+      });
+      console.log('Load More button event listener attached');
+    }
   }
 
   /**
@@ -188,8 +205,14 @@ class InfiniteScroll {
    */
   showLoading() {
     const loadingSpinner = document.querySelector('.loading-spinner');
+    const loadMoreButton = document.getElementById('load-more-button');
+    
     if (loadingSpinner) {
-      loadingSpinner.textContent = 'Loading more articles...';
+      loadingSpinner.style.display = 'flex';
+    }
+    
+    if (loadMoreButton) {
+      loadMoreButton.style.display = 'none';
     }
   }
 
@@ -198,8 +221,14 @@ class InfiniteScroll {
    */
   hideLoading() {
     const loadingSpinner = document.querySelector('.loading-spinner');
+    const loadMoreButton = document.getElementById('load-more-button');
+    
     if (loadingSpinner) {
-      loadingSpinner.textContent = '';
+      loadingSpinner.style.display = 'none';
+    }
+    
+    if (loadMoreButton) {
+      loadMoreButton.style.display = 'block';
     }
   }
 

@@ -221,13 +221,26 @@ const CategoryListPage = ({
                               className: "loading-indicator",
                               style: { display: "none" },
                             },
-                            React.createElement(
-                              "div",
-                              {
-                                className: "loading-spinner",
-                              },
-                              "Loading more articles..."
-                            )
+                            [
+                              React.createElement(
+                                "div",
+                                {
+                                  key: "loading-spinner",
+                                  className: "loading-spinner",
+                                },
+                                "Loading more articles..."
+                              ),
+                              React.createElement(
+                                "button",
+                                {
+                                  key: "load-more-button",
+                                  className: "load-more-button",
+                                  id: "load-more-button",
+                                  "aria-label": "Load more articles",
+                                },
+                                "Load More"
+                              )
+                            ]
                           ),
                       ]
                     )
