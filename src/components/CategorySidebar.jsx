@@ -81,12 +81,56 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
       id: "category-sidebar",
     },
     [
+      // Mobile dropdown toggle
+      React.createElement(
+        "div",
+        {
+          key: "mobile-dropdown-toggle",
+          className: "mobile-dropdown-toggle",
+        },
+        React.createElement(
+          "button",
+          {
+            className: "mobile-dropdown-button",
+            "aria-expanded": "false",
+            "aria-controls": "category-navigation",
+            "data-toggle": "mobile-dropdown",
+          },
+          [
+            "Sort By",
+            React.createElement(
+              "svg",
+              {
+                key: "dropdown-chevron",
+                className: "mobile-dropdown-chevron",
+                "aria-hidden": "true",
+                width: "16",
+                height: "16",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                strokeWidth: "2",
+                strokeLinecap: "round",
+                strokeLinejoin: "round"
+              },
+              React.createElement(
+                "polyline",
+                {
+                  points: "6,9 12,15 18,9"
+                }
+              )
+            )
+          ]
+        )
+      ),
+
       // Category navigation
       React.createElement(
         "nav",
         {
           key: "category-nav",
           className: "category-nav",
+          id: "category-navigation",
         },
         React.createElement(
           "ul",

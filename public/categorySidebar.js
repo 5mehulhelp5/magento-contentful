@@ -43,6 +43,15 @@ class CategorySidebar {
       });
     });
 
+    // Set up mobile dropdown toggle
+    const mobileDropdownButton = sidebar.querySelector('.mobile-dropdown-button');
+    if (mobileDropdownButton) {
+      mobileDropdownButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.toggleMobileDropdown(mobileDropdownButton);
+      });
+    }
+
     // Also allow clicking on the category header (excluding the link) to toggle
     const categoryHeaders = sidebar.querySelectorAll('.category-header');
     categoryHeaders.forEach(header => {
@@ -98,6 +107,30 @@ class CategorySidebar {
     }
 
     console.log(`Category ${newExpandedState ? 'expanded' : 'collapsed'}: ${subcategoryListId}`);
+  }
+
+  /**
+   * Toggle the mobile dropdown visibility
+   * @param {HTMLElement} dropdownButton - The mobile dropdown button
+   */
+  toggleMobileDropdown(dropdownButton) {
+    const sidebar = document.getElementById('category-sidebar');
+    if (!sidebar) return;
+
+    const isExpanded = dropdownButton.getAttribute('aria-expanded') === 'true';
+    const newExpandedState = !isExpanded;
+    
+    // Update button state
+    dropdownButton.setAttribute('aria-expanded', newExpandedState.toString());
+    
+    // Toggle sidebar active class
+    if (newExpandedState) {
+      sidebar.classList.add('mobile-dropdown-active');
+    } else {
+      sidebar.classList.remove('mobile-dropdown-active');
+    }
+
+    console.log(`Mobile dropdown ${newExpandedState ? 'expanded' : 'collapsed'}`);
   }
 
   /**
