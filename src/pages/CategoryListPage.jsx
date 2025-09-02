@@ -17,7 +17,7 @@ const CategoryListPage = ({ categoryData, articles = [], totalCount = 0, allCate
   const breadcrumbs = createBreadcrumbs(title);
   
   // Infinite scroll configuration
-  const initialArticleCount = 9;
+  const initialArticleCount = 12;
   const initialArticles = articles.slice(0, initialArticleCount);
   const hasMoreArticles = articles.length > initialArticleCount;
 

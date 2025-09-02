@@ -1,11 +1,11 @@
 /**
  * Infinite Scroll Implementation for Category List Pages
- * Handles client-side loading of additional articles in batches of 9
+ * Handles client-side loading of additional articles in batches of 12
  */
 
 class InfiniteScroll {
   constructor() {
-    this.articlesPerBatch = 9;
+    this.articlesPerBatch = 12;
     this.currentlyDisplayed = 0;
     this.allArticles = [];
     this.linkBase = '';
@@ -44,7 +44,7 @@ class InfiniteScroll {
       const data = JSON.parse(dataScript.textContent);
       this.allArticles = data.articles || [];
       this.linkBase = data.linkBase || '';
-      this.currentlyDisplayed = data.initialCount || 9;
+      this.currentlyDisplayed = data.initialCount || 12;
       this.totalCount = data.totalCount || 0;
       
       console.log(`Infinite scroll initialized: ${this.currentlyDisplayed} of ${this.allArticles.length} articles displayed`);
