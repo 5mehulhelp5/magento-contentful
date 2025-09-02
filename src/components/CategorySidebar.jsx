@@ -49,9 +49,25 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
 
   const hierarchy = buildCategoryHierarchy(categories);
 
-  // Helper function to create category link URL
+  // Helper function to create category link URL using Magento format
   const createCategoryUrl = (categoryId) => {
-    return `/preview/category/${categoryId}`;
+    // Find the category data by ID
+    const category = categories.find((cat) => cat.sys.id === categoryId);
+    if (!category || !category.fields.title) {
+      return `/preview/category/${categoryId}`; // Fallback to preview URL
+    }
+
+    // Use the same logic as magentoAPI.js
+    function formatCategoryPath(input) {
+      return input
+        .toLowerCase()
+        .split("/")
+        .map((part) => part.trim().replace(/\s+/g, "-"))
+        .join("/");
+    }
+
+    const formattedPath = formatCategoryPath(category.fields.title);
+    return `/garden-guide/${formattedPath}`;
   };
 
   // Helper function to slugify category titles for CSS classes
