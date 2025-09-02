@@ -49,25 +49,9 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
 
   const hierarchy = buildCategoryHierarchy(categories);
 
-  // Helper function to create category link URL using Magento format
+  // Helper function to create category link URL
   const createCategoryUrl = (categoryId) => {
-    // Find the category data by ID
-    const category = categories.find((cat) => cat.sys.id === categoryId);
-    if (!category || !category.fields.title) {
-      return `/preview/category/${categoryId}`; // Fallback to preview URL
-    }
-
-    // Use the same logic as magentoAPI.js
-    function formatCategoryPath(input) {
-      return input
-        .toLowerCase()
-        .split("/")
-        .map((part) => part.trim().replace(/\s+/g, "-"))
-        .join("/");
-    }
-
-    const formattedPath = formatCategoryPath(category.fields.title);
-    return `/garden-guide/${formattedPath}`;
+    return `/preview/category/${categoryId}`;
   };
 
   // Helper function to slugify category titles for CSS classes
@@ -117,6 +101,16 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
                     "data-category-id": topLevelCategory.id,
                   },
                   [
+                    // Category title/link
+                    React.createElement(
+                      "a",
+                      {
+                        key: "category-link",
+                        href: createCategoryUrl(topLevelCategory.id),
+                        className: "category-link",
+                      },
+                      topLevelCategory.title
+                    ),
                     // Toggle button for collapsible behavior
                     topLevelCategory.children.length > 0 &&
                       React.createElement(
@@ -131,25 +125,27 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
                           "data-toggle": "collapse",
                         },
                         React.createElement(
-                          "span",
+                          "svg",
                           {
                             className: "toggle-icon",
                             "aria-hidden": "true",
+                            width: "16",
+                            height: "16",
+                            viewBox: "0 0 24 24",
+                            fill: "none",
+                            stroke: "currentColor",
+                            strokeWidth: "2",
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round"
                           },
-                          "▶"
+                          React.createElement(
+                            "polyline",
+                            {
+                              points: "6,9 12,15 18,9"
+                            }
+                          )
                         )
                       ),
-
-                    // Category title/link
-                    React.createElement(
-                      "a",
-                      {
-                        key: "category-link",
-                        href: createCategoryUrl(topLevelCategory.id),
-                        className: "category-link",
-                      },
-                      topLevelCategory.title
-                    ),
                   ]
                 ),
 

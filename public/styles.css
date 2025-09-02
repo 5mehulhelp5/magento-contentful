@@ -852,6 +852,7 @@ body {
   border-radius: 4px;
   transition: all 0.15s ease;
   color: #6b7280;
+  pointer-events: none;
 }
 
 .category-toggle:hover {
@@ -860,23 +861,25 @@ body {
 }
 
 .category-toggle[aria-expanded="true"] .toggle-icon {
-  transform: rotate(90deg);
+  transform: rotate(180deg);
 }
 
 .toggle-icon {
   transition: transform 0.15s ease;
-  font-size: 12px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .category-link {
-  color: #374151;
+  color: #000000;
   text-decoration: none;
-  font-weight: 500;
   font-size: 14px;
   flex: 1;
   padding: 4px 0;
   transition: color 0.15s ease;
+  font-family: "Geograph", sans-serif;
+  font-weight: 700;
 }
 
 .category-link:hover {
@@ -904,7 +907,7 @@ body {
 }
 
 .subcategory-list.expanded {
-  max-height: 500px; /* Adjust based on content */
+  /* max-height: 500px; /* Adjust based on content */
   opacity: 1;
 }
 
@@ -914,7 +917,7 @@ body {
 
 .subcategory-link {
   display: block;
-  color: #6b7280;
+  color: #000000;
   text-decoration: none;
   font-size: 13px;
   font-weight: 400;
@@ -922,6 +925,7 @@ body {
   border-radius: 4px;
   transition: all 0.15s ease;
   position: relative;
+  font-family: "Geograph", sans-serif;
 }
 
 .subcategory-link:hover {
