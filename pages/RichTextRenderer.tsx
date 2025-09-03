@@ -62,22 +62,48 @@ function parseMarkdownTable(text: string): { isTable: boolean; tableData?: any; 
 // Component to render a markdown table as React elements
 function MarkdownTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto my-6">
-      <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
-        <thead className="bg-faded-green">
+    <div style={{
+      overflowX: 'auto',
+      margin: '1.5rem 0'
+    }}>
+      <table style={{
+        minWidth: '100%',
+        borderCollapse: 'collapse',
+        border: '1px solid #d1d5db',
+        borderRadius: '0.5rem'
+      }}>
+        <thead style={{
+          backgroundColor: '#f0f9f0'
+        }}>
           <tr>
             {headers.map((header, i) => (
-              <th key={i} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-200">
+              <th key={i} style={{
+                padding: '0.75rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#111827',
+                borderBottom: '1px solid #e5e7eb'
+              }}>
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody style={{
+          backgroundColor: 'white'
+        }}>
           {rows.map((row, i) => (
-            <tr key={i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}>
+            <tr key={i} style={{
+              backgroundColor: i % 2 === 0 ? 'white' : '#f9fafb'
+            }}>
               {row.map((cell, j) => (
-                <td key={j} className="px-4 py-3 text-sm text-gray-700 border-b border-gray-200">
+                <td key={j} style={{
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  borderBottom: '1px solid #e5e7eb'
+                }}>
                   {cell}
                 </td>
               ))}
@@ -95,11 +121,17 @@ interface RichTextRendererProps {
 
 const options = {
   renderMark: {
-    [MARKS.BOLD]: (text: any) => <strong className="font-semibold">{text}</strong>,
-    [MARKS.ITALIC]: (text: any) => <em className="italic">{text}</em>,
-    [MARKS.UNDERLINE]: (text: any) => <u className="underline">{text}</u>,
+    [MARKS.BOLD]: (text: any) => <strong style={{ fontWeight: '600' }}>{text}</strong>,
+    [MARKS.ITALIC]: (text: any) => <em style={{ fontStyle: 'italic' }}>{text}</em>,
+    [MARKS.UNDERLINE]: (text: any) => <u style={{ textDecoration: 'underline' }}>{text}</u>,
     [MARKS.CODE]: (text: any) => (
-      <code className="bg-gray-100 rounded px-1 py-0.5 text-sm font-mono">{text}</code>
+      <code style={{
+        backgroundColor: '#f3f4f6',
+        borderRadius: '0.25rem',
+        padding: '0.125rem 0.25rem',
+        fontSize: '0.875rem',
+        fontFamily: 'monospace'
+      }}>{text}</code>
     ),
   },
   renderNode: {
@@ -129,7 +161,11 @@ const options = {
               rows={tableResult.tableData.rows} 
             />
             {tableResult.remainingText && (
-              <p className="mb-4 leading-relaxed text-gray-700">
+              <p style={{
+                marginBottom: '1rem',
+                lineHeight: '1.625',
+                color: '#374151'
+              }}>
                 {tableResult.remainingText}
               </p>
             )}
@@ -138,41 +174,110 @@ const options = {
       }
 
       // Default paragraph rendering
-      return <p className="mb-4 leading-relaxed text-gray-700">{children}</p>
+      return <p style={{
+        marginBottom: '1rem',
+        lineHeight: '1.625',
+        color: '#374151'
+      }}>{children}</p>
     },
     [BLOCKS.HEADING_1]: (node: any, children: any) => (
-      <h1 className="text-4xl font-medium mb-6 text-gray-900 font-reckless">{children}</h1>
+      <h1 style={{
+        fontSize: '2.25rem',
+        fontWeight: '500',
+        marginBottom: '1.5rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h1>
     ),
     [BLOCKS.HEADING_2]: (node: any, children: any) => (
-      <h2 className="text-3xl font-medium mb-4 mt-8 text-gray-900 font-reckless">{children}</h2>
+      <h2 style={{
+        fontSize: '1.875rem',
+        fontWeight: '500',
+        marginBottom: '1rem',
+        marginTop: '2rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h2>
     ),
     [BLOCKS.HEADING_3]: (node: any, children: any) => (
-      <h3 className="text-2xl font-medium mb-3 mt-6 text-gray-900 font-reckless">{children}</h3>
+      <h3 style={{
+        fontSize: '1.5rem',
+        fontWeight: '500',
+        marginBottom: '0.75rem',
+        marginTop: '1.5rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h3>
     ),
     [BLOCKS.HEADING_4]: (node: any, children: any) => (
-      <h4 className="text-xl font-medium mb-2 mt-4 text-gray-900 font-reckless">{children}</h4>
+      <h4 style={{
+        fontSize: '1.25rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h4>
     ),
     [BLOCKS.HEADING_5]: (node: any, children: any) => (
-      <h5 className="text-lg font-medium mb-2 mt-4 text-gray-900 font-reckless">{children}</h5>
+      <h5 style={{
+        fontSize: '1.125rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h5>
     ),
     [BLOCKS.HEADING_6]: (node: any, children: any) => (
-      <h6 className="text-base font-medium mb-2 mt-4 text-gray-900 font-reckless">{children}</h6>
+      <h6 style={{
+        fontSize: '1rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h6>
     ),
     [BLOCKS.UL_LIST]: (node: any, children: any) => (
-      <ul className="list-disc list-outside ml-6 mb-4 space-y-2 text-gray-700">{children}</ul>
+      <ul style={{
+        listStyleType: 'disc',
+        listStylePosition: 'outside',
+        marginLeft: '1.5rem',
+        marginBottom: '1rem',
+        color: '#374151'
+      }}>{children}</ul>
     ),
     [BLOCKS.OL_LIST]: (node: any, children: any) => (
-      <ol className="list-decimal list-outside ml-6 mb-4 space-y-2 text-gray-700">{children}</ol>
+      <ol style={{
+        listStyleType: 'decimal',
+        listStylePosition: 'outside',
+        marginLeft: '1.5rem',
+        marginBottom: '1rem',
+        color: '#374151'
+      }}>{children}</ol>
     ),
     [BLOCKS.LIST_ITEM]: (node: any, children: any) => (
-      <li>{children}</li>
+      <li style={{ marginBottom: '0.5rem' }}>{children}</li>
     ),
     [BLOCKS.QUOTE]: (node: any, children: any) => (
-      <blockquote className="border-l-4 border-green-500 pl-4 py-2 mb-4 italic text-gray-600 bg-green-50">
+      <blockquote style={{
+        borderLeft: '4px solid #10b981',
+        paddingLeft: '1rem',
+        paddingTop: '0.5rem',
+        paddingBottom: '0.5rem',
+        marginBottom: '1rem',
+        fontStyle: 'italic',
+        color: '#4b5563',
+        backgroundColor: '#f0fdf4'
+      }}>
         {children}
       </blockquote>
     ),
-    [BLOCKS.HR]: () => <hr className="border-gray-300 my-8" />,
+    [BLOCKS.HR]: () => <hr style={{
+      borderColor: '#d1d5db',
+      margin: '2rem 0'
+    }} />,
     [BLOCKS.EMBEDDED_ASSET]: (node: any) => {
       const asset = node.data.target
       if (asset?.fields?.file?.url) {
@@ -181,16 +286,26 @@ const options = {
           : asset.fields.file.url
         
         return (
-          <div className="my-8">
+          <div style={{ margin: '2rem 0' }}>
             <Image
               src={url}
               alt={asset.fields.title || asset.fields.description || ''}
               width={asset.fields.file.details.image?.width || 800}
               height={asset.fields.file.details.image?.height || 600}
-              className="rounded-lg shadow-md mx-auto"
+              style={{
+                borderRadius: '0.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                margin: '0 auto',
+                display: 'block'
+              }}
             />
             {asset.fields.description && (
-              <p className="text-sm text-gray-500 text-center mt-2">
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginTop: '0.5rem'
+              }}>
                 {asset.fields.description}
               </p>
             )}
@@ -205,7 +320,10 @@ const options = {
       // Check if it's an internal link
       if (url.startsWith('/')) {
         return (
-          <Link href={url} className="text-green-600 hover:text-green-700 underline">
+          <Link href={url} style={{
+            color: '#059669',
+            textDecoration: 'underline'
+          }}>
             {children}
           </Link>
         )
@@ -217,7 +335,10 @@ const options = {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-green-600 hover:text-green-700 underline"
+          style={{
+            color: '#059669',
+            textDecoration: 'underline'
+          }}
         >
           {children}
         </a>
@@ -226,7 +347,10 @@ const options = {
     [INLINES.ENTRY_HYPERLINK]: (node: any, children: any) => {
       // Handle links to other entries
       return (
-        <Link href="#" className="text-green-600 hover:text-green-700 underline">
+        <Link href="#" style={{
+          color: '#059669',
+          textDecoration: 'underline'
+        }}>
           {children}
         </Link>
       )
@@ -235,5 +359,9 @@ const options = {
 }
 
 export default function RichTextRenderer({ document }: RichTextRendererProps) {
-  return <div className="prose max-w-none">{documentToReactComponents(document, options)}</div>
+  return <div style={{
+    maxWidth: 'none',
+    lineHeight: '1.75',
+    color: '#374151'
+  }}>{documentToReactComponents(document, options)}</div>
 }
