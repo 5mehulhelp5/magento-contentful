@@ -37,7 +37,8 @@ const CategoryListPage = ({
       .join("/");
   }
 
-  const linkBase = slugifyCategory(breadcrumbs[breadcrumbs.length - 1].name); //formatCategoryArray(breadcrumbs);
+  // Create linkBase for production URLs - fallback for articles without frontendUrl
+  const linkBase = ""; //`garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1].name)}`;
 
   return React.createElement(
     "div",
@@ -239,7 +240,7 @@ const CategoryListPage = ({
                                   "aria-label": "Load more articles",
                                 },
                                 "Load More"
-                              )
+                              ),
                             ]
                           ),
                       ]

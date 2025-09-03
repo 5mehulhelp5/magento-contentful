@@ -9,7 +9,7 @@
  * @param {string} linkBase - Base URL for article links (default: '/preview/article')
  * @returns {string} Complete HTML string for article card
  */
-function generateArticleCardHTML(article, linkBase = '/preview/article') {
+function generateArticleCardHTML(article, linkBase = "") {
   // Extract and process article data
   const { sys, fields = {} } = article || {};
   const {
@@ -29,18 +29,26 @@ function generateArticleCardHTML(article, linkBase = '/preview/article') {
 
   // Check if the article is a Growing Guide article
   const isGrowingGuide = ["Learn About", "Growing Guide"].some((substring) =>
-    (title || '').includes(substring)
+    (title || "").includes(substring)
   );
 
   // Create article URL
-  const articleUrl = frontendUrl 
-    ? frontendUrl 
-    : `${linkBase}/${newSlug || slug}`;
+  let articleUrl;
+  if (frontendUrl) {
+    // Ensure frontendUrl starts with / for absolute path
+    articleUrl = frontendUrl.startsWith('/') ? frontendUrl : `/${frontendUrl}`;
+  } else if (linkBase) {
+    // Construct production URL from linkBase and slug
+    articleUrl = `/${linkBase}/${newSlug || slug}`;
+  } else {
+    // Fallback to preview URL
+    articleUrl = `/preview/article/${newSlug || slug || sys?.id}`;
+  }
 
   // Handle image URL (ensure HTTPS)
   let imageUrl = null;
   if (cardImage?.fields?.file?.url) {
-    imageUrl = cardImage.fields.file.url.startsWith('//')
+    imageUrl = cardImage.fields.file.url.startsWith("//")
       ? `https:${cardImage.fields.file.url}`
       : cardImage.fields.file.url;
   }
@@ -48,15 +56,20 @@ function generateArticleCardHTML(article, linkBase = '/preview/article') {
   // Generate the complete article card HTML
   return `
     <a href="${articleUrl}" class="article-card">
-      ${cardImage && imageUrl ? `
-        <div class="article-card-image ${isGrowingGuide ? 'growing-guide-image' : ''}">
+      ${
+        cardImage && imageUrl
+          ? `
+        <div class="article-card-image ${
+          isGrowingGuide ? "growing-guide-image" : ""
+        }">
           <img 
             src="${imageUrl}" 
-            alt="${cardImageAlt || title || 'Article image'}"
+            alt="${cardImageAlt || title || "Article image"}"
             loading="lazy"
           />
         </div>
-      ` : `
+      `
+          : `
         <div class="article-card-image">
           <div class="article-card-placeholder">
             <svg fill="currentColor" viewBox="0 0 20 20">
@@ -64,9 +77,10 @@ function generateArticleCardHTML(article, linkBase = '/preview/article') {
             </svg>
           </div>
         </div>
-      `}
+      `
+      }
       <div class="article-card-content">
-        <h3 class="article-card-title">${title || 'Untitled Article'}</h3>
+        <h3 class="article-card-title">${title || "Untitled Article"}</h3>
       </div>
     </a>
   `.trim();
@@ -79,7 +93,7 @@ function generateArticleCardHTML(article, linkBase = '/preview/article') {
  * @param {string} linkBase - Base URL for article links
  * @returns {string} HTML string for article card content
  */
-function generateArticleCardContent(article, linkBase = '/preview/article') {
+function generateArticleCardContent(article, linkBase = "/preview/article") {
   const fullHTML = generateArticleCardHTML(article, linkBase);
   // Extract content between <a> tags
   const match = fullHTML.match(/<a[^>]*>(.*)<\/a>/s);
@@ -92,7 +106,7 @@ function generateArticleCardContent(article, linkBase = '/preview/article') {
  * @param {string} linkBase - Base URL for article links
  * @returns {Object} Processed article metadata
  */
-function getArticleMetadata(article, linkBase = '/preview/article') {
+function getArticleMetadata(article, linkBase = "/preview/article") {
   const { sys, fields = {} } = article || {};
   const {
     title,
@@ -108,45 +122,45 @@ function getArticleMetadata(article, linkBase = '/preview/article') {
   const cardImage = listImage || featuredImage;
   const cardImageAlt = listImageAlt || imageAlt || title;
   const isGrowingGuide = ["Learn About", "Growing Guide"].some((substring) =>
-    (title || '').includes(substring)
+    (title || "").includes(substring)
   );
-  const articleUrl = frontendUrl 
-    ? frontendUrl 
+  const articleUrl = frontendUrl
+    ? frontendUrl
     : `${linkBase}/${newSlug || slug}`;
 
   let imageUrl = null;
   if (cardImage?.fields?.file?.url) {
-    imageUrl = cardImage.fields.file.url.startsWith('//')
+    imageUrl = cardImage.fields.file.url.startsWith("//")
       ? `https:${cardImage.fields.file.url}`
       : cardImage.fields.file.url;
   }
 
   return {
-    title: title || 'Untitled Article',
+    title: title || "Untitled Article",
     articleUrl,
     imageUrl,
-    cardImageAlt: cardImageAlt || title || 'Article image',
+    cardImageAlt: cardImageAlt || title || "Article image",
     isGrowingGuide,
     hasImage: !!(cardImage && imageUrl),
     sys,
-    fields
+    fields,
   };
 }
 
 // Export for Node.js (server-side)
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     generateArticleCardHTML,
     generateArticleCardContent,
-    getArticleMetadata
+    getArticleMetadata,
   };
 }
 
 // Export for browser (client-side)
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.ArticleCardTemplate = {
     generateArticleCardHTML,
     generateArticleCardContent,
-    getArticleMetadata
+    getArticleMetadata,
   };
 }

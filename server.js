@@ -281,6 +281,7 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
         "fields.metaDescription",
         "fields.slug",
         "fields.newSlug",
+        "fields.frontendUrl",
       ].join(","),
     });
 
@@ -302,6 +303,9 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
         "fields.listImageAlt",
         "fields.publishedAt",
         "fields.metaDescription",
+        "fields.slug",
+        "fields.newSlug",
+        "fields.frontendUrl",
       ].join(","),
     });
 

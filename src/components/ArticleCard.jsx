@@ -6,7 +6,7 @@ const { generateArticleCardHTML } = require("../utils/articleCardTemplate");
  * @param {string} linkBase - Base URL for article links
  * @returns {string} HTML string for the article card
  */
-const ArticleCard = ({ article, linkBase = "/preview/article" }) => {
+const ArticleCard = ({ article, linkBase = "" }) => {
   return generateArticleCardHTML(article, linkBase);
 };
 

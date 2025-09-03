@@ -60,9 +60,25 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
     return topLevelCategory.children.some(child => child.id === currentCategoryId);
   };
 
-  // Helper function to create category link URL
+  // Helper function to create category link URL using production format
   const createCategoryUrl = (categoryId) => {
-    return `/preview/category/${categoryId}`;
+    // Find the category data by ID
+    const category = categories.find(cat => cat.sys.id === categoryId);
+    if (!category || !category.fields.title) {
+      return `/preview/category/${categoryId}`; // Fallback to preview URL
+    }
+    
+    // Use the same logic as magentoAPI.js for production URLs
+    function formatCategoryPath(input) {
+      return input
+        .toLowerCase()
+        .split("/")
+        .map((part) => part.trim().replace(/\s+/g, "-"))
+        .join("/");
+    }
+    
+    const formattedPath = formatCategoryPath(category.fields.title);
+    return `/garden-guide/${formattedPath}`;
   };
 
   // Helper function to slugify category titles for CSS classes
