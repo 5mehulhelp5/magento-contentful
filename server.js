@@ -1225,6 +1225,19 @@ app.post("/db/cms-pages/make-contentful-searchable", async (req, res) => {
   }
 });
 
+// Header preview route
+app.get("/preview/header", async (req, res) => {
+  try {
+    const HeaderTestPage = require("./src/pages/HeaderTestPage.jsx");
+    const { html } = await renderPageToStatic(HeaderTestPage, {});
+    
+    res.send(html);
+  } catch (error) {
+    console.error("Error rendering header preview:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(
@@ -1233,6 +1246,7 @@ app.listen(PORT, () => {
   console.log(`📝 Test the setup at http://localhost:${PORT}/test`);
   console.log(`📚 View instructions at http://localhost:${PORT}/`);
   console.log(`🔍 List entries at http://localhost:${PORT}/api/entries`);
+  console.log(`🎨 Header preview at http://localhost:${PORT}/preview/header`);
   console.log(
     `\\n💡 To preview an article: http://localhost:${PORT}/preview/article/[entryId]`
   );

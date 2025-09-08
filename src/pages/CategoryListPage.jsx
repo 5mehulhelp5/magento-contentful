@@ -1,6 +1,7 @@
 import React from "react";
 import ArticleCard from "../components/ArticleCard.jsx";
 import CategorySidebar from "../components/CategorySidebar.jsx";
+import Header from "../components/Header.jsx";
 
 const CategoryListPage = ({
   categoryData,
@@ -21,6 +22,17 @@ const CategoryListPage = ({
   };
 
   const breadcrumbs = createBreadcrumbs(title);
+
+  // Create header breadcrumbs (different format for Header component)
+  const headerBreadcrumbs = [
+    { name: "Home", href: "/" },
+    { name: "Garden Guide", href: "/garden-guide" },
+    ...breadcrumbs.slice(0, -1).map(crumb => ({
+      name: crumb.name,
+      href: `/garden-guide/${slugifyCategory(crumb.name)}`
+    })),
+    { name: breadcrumbs[breadcrumbs.length - 1]?.name } // Current page (no href)
+  ];
 
   // Infinite scroll configuration
   const initialArticleCount = 12;
@@ -46,6 +58,12 @@ const CategoryListPage = ({
       className: "page-layout",
     },
     [
+      // Header component
+      React.createElement(Header, {
+        key: "main-header",
+        breadcrumbs: headerBreadcrumbs,
+        currentPath: `/garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "")}`
+      }),
       // Header section
       React.createElement(
         "div",

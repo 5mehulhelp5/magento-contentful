@@ -4,7 +4,6 @@
 }
 
 .contentful-category-page {
-  padding: 40px 0px;
 }
 
 /* Hide default breadcrumbs */
@@ -1015,6 +1014,23 @@
     height: auto;
     max-height: none;
     order: 1;
+  }
+
+  /* Show mobile dropdown toggle */
+  .mobile-dropdown-toggle {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  /* Hide category navigation by default on mobile */
+  .category-nav {
+    display: none;
+    margin-top: 16px;
+  }
+
+  /* Show category navigation when dropdown is active */
+  .category-sidebar.mobile-dropdown-active .category-nav {
+    display: block;
   }
 
   .articles-main {
