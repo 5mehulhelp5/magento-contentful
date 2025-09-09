@@ -66,7 +66,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
           style: {
             maxWidth: "1314px",
             margin: "0 auto",
-            padding: "1.5rem 1rem",
+            padding: "1.2rem 1rem",
           },
         },
         [
@@ -75,6 +75,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
             "div",
             {
               key: "header-content",
+              className: "header-content",
               style: {
                 display: "flex",
                 alignItems: "center",
@@ -97,6 +98,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                   "a",
                   {
                     href: "/garden-guide",
+                    className: "header-logo",
                     style: {
                       fontSize: "2.2rem",
                       fontWeight: "500",
@@ -118,6 +120,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                     gap: "1.5rem",
                     flexWrap: "wrap",
                   },
+                  className: "category-buttons-desktop",
                 },
                 categoryButtons.map((button) =>
                   React.createElement(
@@ -171,6 +174,102 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                     ]
                   )
                 )
+              ),
+
+              // Mobile category buttons (2x2 grid)
+              React.createElement(
+                "div",
+                {
+                  key: "category-buttons-mobile",
+                  className: "category-buttons-mobile",
+                  style: {
+                    display: "none", // Hidden by default, shown on mobile via CSS
+                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                    gap: "1rem",
+                    width: "100%",
+                    marginTop: "1rem",
+                  },
+                },
+                categoryButtons.map((button) => {
+                  // Adjust button names for mobile
+                  let mobileButtonName = button.name;
+                  if (button.name === "Start Here")
+                    mobileButtonName = "Get Started";
+                  if (button.name === "Kitchen Gardening")
+                    mobileButtonName = "Kitchen Garden";
+                  if (button.name === "Plant Care")
+                    mobileButtonName = "Garden Care";
+
+                  return React.createElement(
+                    "div",
+                    {
+                      key: `mobile-${button.name}`,
+                      style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        textAlign: "center",
+                      },
+                    },
+                    [
+                      // Icon square container (clickable)
+                      React.createElement(
+                        "a",
+                        {
+                          key: "icon-link",
+                          href: button.href,
+                          style: {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "55px",
+                            height: "55px",
+                            border: "1px solid #046A38",
+                            borderRadius: "1rem",
+                            backgroundColor: "white",
+                            textDecoration: "none",
+                            transition: "all 0.2s ease",
+                            marginBottom: "0.75rem",
+                          },
+                        },
+                        typeof button.icon === "string"
+                          ? React.createElement(
+                              "span",
+                              {
+                                style: {
+                                  fontSize: "2.5rem",
+                                  color: "#046A38",
+                                },
+                              },
+                              button.icon
+                            )
+                          : React.createElement(button.icon, {
+                              key: "svg-icon",
+                              style: {
+                                width: "50px",
+                                height: "50px",
+                              },
+                            })
+                      ),
+                      // Text label (outside the square)
+                      React.createElement(
+                        "span",
+                        {
+                          key: "text",
+                          style: {
+                            fontSize: "16px",
+                            fontWeight: "600",
+                            lineHeight: "1.3",
+                            color: "black",
+                            maxWidth: "100px",
+                            wordWrap: "break-word",
+                          },
+                        },
+                        mobileButtonName
+                      ),
+                    ]
+                  );
+                })
               ),
             ]
           ),
