@@ -1142,6 +1142,75 @@
   }
 }
 
+/* Product Sidebar Styles */
+.product-sidebar {
+  width: 320px;
+  background-color: white;
+  padding: 24px;
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.product-card {
+  cursor: pointer;
+}
+
+.product-card:hover .product-title {
+  color: #046A38 !important;
+  text-decoration: underline;
+}
+
+/* Article with Sidebar Layout */
+.article-with-sidebar {
+  max-width: 1314px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.article-main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Responsive sidebar behavior */
+@media (max-width: 1200px) {
+  .article-with-sidebar {
+    flex-direction: column;
+  }
+  
+  .product-sidebar {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    position: static;
+  }
+  
+  .products-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .article-with-sidebar {
+    padding: 0 0.5rem;
+    gap: 1.5rem;
+  }
+  
+  .product-sidebar {
+    padding: 16px;
+  }
+  
+  .products-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Layout for content with sidebar within container */
 .content-with-sidebar {
   display: flex;
