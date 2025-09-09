@@ -28,23 +28,23 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
   // Main category buttons with icons
   const categoryButtons = [
     {
-      name: "Start Here",
-      href: "/garden-guide/start-here",
+      name: "Get Started",
+      href: "/garden-guide/get-started",
       icon: GettingStarted, // SVG Component
     },
     {
       name: "Kitchen Gardening",
-      href: "/garden-guide/kitchen-gardening",
+      href: "/garden-guide/edible-gardening",
       icon: KitchenGardening, // SVG Component
     },
     {
       name: "Flowers & More",
-      href: "/garden-guide/flowers-more",
+      href: "/garden-guide/ornamental-gardening",
       icon: FlowersAndMore, // SVG Component
     },
     {
-      name: "Plant Care",
-      href: "/garden-guide/plant-care",
+      name: "Garden Care",
+      href: "/garden-guide/garden-care",
       icon: PlantCare, // SVG Component
     },
   ];
@@ -58,7 +58,6 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
       },
     },
     [
-      // Main header section
       React.createElement(
         "div",
         {
@@ -128,6 +127,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                     {
                       key: button.name,
                       href: button.href,
+                      className: "category-button-desktop",
                       style: {
                         display: "flex",
                         alignItems: "center",
@@ -191,14 +191,19 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                   },
                 },
                 categoryButtons.map((button) => {
-                  // Adjust button names for mobile
-                  let mobileButtonName = button.name;
-                  if (button.name === "Start Here")
-                    mobileButtonName = "Get Started";
-                  if (button.name === "Kitchen Gardening")
-                    mobileButtonName = "Kitchen Garden";
-                  if (button.name === "Plant Care")
-                    mobileButtonName = "Garden Care";
+                  // Create mobile button text with line breaks
+                  let mobileButtonText;
+                  if (button.name === "Get Started") {
+                    mobileButtonText = ["Get", React.createElement("br", { key: "br" }), "Started"];
+                  } else if (button.name === "Kitchen Gardening") {
+                    mobileButtonText = "Kitchen Garden";
+                  } else if (button.name === "Flowers & More") {
+                    mobileButtonText = ["Flowers", React.createElement("br", { key: "br" }), "& More"];
+                  } else if (button.name === "Garden Care") {
+                    mobileButtonText = ["Garden", React.createElement("br", { key: "br" }), "Care"];
+                  } else {
+                    mobileButtonText = button.name;
+                  }
 
                   return React.createElement(
                     "div",
@@ -218,6 +223,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                         {
                           key: "icon-link",
                           href: button.href,
+                          className: "category-button-mobile",
                           style: {
                             display: "flex",
                             alignItems: "center",
@@ -265,7 +271,7 @@ const Header = ({ breadcrumbs = [], currentPath = "" }) => {
                             wordWrap: "break-word",
                           },
                         },
-                        mobileButtonName
+                        mobileButtonText
                       ),
                     ]
                   );

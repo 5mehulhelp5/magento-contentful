@@ -14,8 +14,36 @@
   display: none !important;
 }
 
-/* Mobile responsive breakpoint */
-@media (max-width: 768px) {
+/* Desktop button hover effects */
+.category-button-desktop:hover {
+  background-color: #046a38 !important;
+  color: white !important;
+}
+
+.category-button-desktop:hover svg path {
+  fill: white !important;
+}
+
+/* Mobile button hover effects */
+.category-button-mobile:hover {
+  background-color: #046a38 !important;
+}
+
+.category-button-mobile:hover svg path {
+  fill: white !important;
+}
+
+.category-button-mobile:hover span {
+  color: white !important;
+}
+
+@media (max-width: 1256px) {
+  .header-content {
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 878px) {
   .category-buttons-desktop {
     display: none !important;
   }
@@ -29,6 +57,15 @@
     padding: 0 1rem;
   }
 
+  .header-content {
+    max-width: 500px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+/* Mobile responsive breakpoint */
+@media (max-width: 768px) {
   /* Adjust header layout on mobile */
   .header-content {
     flex-direction: column;

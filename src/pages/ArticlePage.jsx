@@ -1,15 +1,28 @@
 import React from 'react';
 import RichTextRenderer from '../components/RichTextRenderer.jsx';
+import Header from '../components/Header.jsx';
 
 const ArticlePage = ({ data }) => {
   const { title, body, featuredImage, imageAlt, publishedAt } = data || {};
   
+  // Create breadcrumbs for article page
+  const headerBreadcrumbs = [
+    { name: "Home", href: "/" },
+    { name: "Garden Guide", href: "/garden-guide" },
+    { name: title || "Article" }
+  ];
+  
   return React.createElement('div', {
     className: 'article-page'
   }, [
-    // Header
-    React.createElement('div', {
+    // Header Component
+    React.createElement(Header, {
       key: 'header',
+      breadcrumbs: headerBreadcrumbs
+    }),
+    // Article Header
+    React.createElement('div', {
+      key: 'article-header',
       className: 'article-header'
     }, 
       React.createElement('div', {
