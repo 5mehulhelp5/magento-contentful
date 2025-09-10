@@ -24,13 +24,13 @@ const HomeHeader = () => {
         "Get help with watering, feeding and solving plant problems.",
     },
     {
-      name: "Kitchen Gardening",
-      href: "/garden-guide/edible-gardening",
+      name: ["Kitchen", " Gardening"],
+      href: "/garden-guide/edible-gardening", 
       icon: KitchenGardening,
       description: "Herbs, veggies, and fruit from your own garden.",
     },
     {
-      name: "Flowers & More",
+      name: ["Flowers", " & More"],
       href: "/garden-guide/ornamental-gardening",
       icon: FlowersAndMore,
       description:
@@ -120,7 +120,18 @@ const HomeHeader = () => {
                       {
                         key: "title",
                       },
-                      button.name
+                      Array.isArray(button.name) 
+                        ? button.name.map((part, partIndex) => 
+                            React.createElement(
+                              "span",
+                              {
+                                key: partIndex,
+                                className: "mobile-break",
+                              },
+                              part
+                            )
+                          )
+                        : button.name
                     ),
                     // Description
                     React.createElement(

@@ -1374,9 +1374,9 @@
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .view-all-button:hover {
@@ -1429,8 +1429,13 @@
     padding: 2rem 1rem;
   }
 
+  #gg-home-header {
+    margin-bottom: 1.5rem;
+  }
+
   #gg-home-header h1 {
     font-size: 2rem;
+    line-height: 2.6rem;
   }
 
   #gg-home-links ul {
@@ -1438,8 +1443,13 @@
     gap: 0.5rem;
   }
 
+  #gg-home-links li {
+    height: 150px;
+    align-content: center;
+  }
+
   #gg-home-links a {
-    padding: 1.5rem 0.5rem;
+    padding: 0;
   }
 
   #gg-home-links h4 {
@@ -1448,6 +1458,12 @@
 
   #gg-home-links p {
     font-size: 0.8rem;
+    display: none;
+  }
+
+  #gg-home-links .mobile-break {
+    display: block;
+    line-height: 1.3rem;
   }
 
   .gg-row-columns-header {
