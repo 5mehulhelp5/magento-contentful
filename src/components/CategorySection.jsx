@@ -36,7 +36,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
           React.createElement(
             "div",
             {
-              className: "pagebuilder-column",
+              className: "header-content",
             },
             [
               React.createElement(
@@ -58,7 +58,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
           React.createElement(
             "div",
             {
-              className: "pagebuilder-column",
+              className: "header-button",
             },
             React.createElement(
               "div",
@@ -73,7 +73,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
                 React.createElement(
                   "a",
                   {
-                    className: "pagebuilder-button-primary",
+                    className: "view-all-button",
                     href: viewAllLink,
                   },
                   [
@@ -101,7 +101,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
           React.createElement(
             "div",
             {
-              className: "pagebuilder-column-line",
+              className: "category-articles-grid",
             },
             articles.slice(0, 3).map((article, index) => {
               // Generate the article card HTML
@@ -114,7 +114,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
                 "div",
                 {
                   key: article.sys?.id || index,
-                  className: "pagebuilder-column",
+                  className: "article-column",
                 },
                 React.createElement("div", {
                   dangerouslySetInnerHTML: { __html: articleHTML },
