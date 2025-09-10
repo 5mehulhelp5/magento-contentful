@@ -898,6 +898,81 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
   };
 }
 
+/**
+ * Submit homepage to Magento as a CMS page
+ * @param {string} renderedHtml - Rendered HTML content
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function submitHomepageToMagento(renderedHtml) {
+  const title = "Burpee Garden Guide";
+  const identifier = "garden-guide-test";
+
+  console.log(`Processing homepage: ${title}`);
+
+  // Check if homepage already exists
+  const existingPage = await getCmsPageByIdentifier(identifier);
+
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
+  const pageData = {
+    title: title,
+    content: magentoContent,
+    identifier: identifier,
+    meta_title:
+      "Burpee Garden Guide - Gardening Tips, Plant Care & Growing Advice",
+    meta_description:
+      "Dig in to find garden inspiration and advice from the experts at Burpee. Get help with planting, growing, and caring for your garden.",
+    meta_keywords:
+      "garden guide, gardening tips, plant care, growing advice, burpee",
+    content_heading: "",
+    active: 1,
+    page_layout: "cms-full-width",
+    sort_order: "0",
+    creation_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  let result;
+  let action;
+  let finalMagentoId;
+
+  if (existingPage) {
+    // Page exists, update it
+    console.log(`Updating existing homepage with ID: ${existingPage.id}`);
+    result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+    action = "updated";
+    finalMagentoId = existingPage.id;
+  } else {
+    // Create new page
+    console.log("Creating new homepage in Magento");
+    result = await createOrUpdateCmsPage(pageData, "POST");
+    action = "created";
+    finalMagentoId = result.success ? result.data.id : null;
+  }
+
+  if (result.success) {
+    console.log(`✅ Successfully ${action} homepage in Magento`);
+    console.log(`📄 Page ID: ${finalMagentoId}`);
+    console.log(`🔗 Frontend URL: ${identifier}`);
+
+    return {
+      success: true,
+      action: action,
+      identifier: identifier,
+      magentoId: finalMagentoId,
+      status: result.status || 200,
+    };
+  } else {
+    console.error(`❌ Failed to ${action} homepage in Magento:`, result.error);
+    return {
+      success: false,
+      error: result.error,
+      action: action,
+      identifier: identifier,
+    };
+  }
+}
+
 module.exports = {
   getCmsPageByIdentifier,
   getCmsPageById,
@@ -905,5 +980,6 @@ module.exports = {
   submitToMagento,
   submitCategoryToMagento,
   submitFAQToMagento,
+  submitHomepageToMagento,
   extractBodyContentForMagento,
 };

@@ -1157,7 +1157,7 @@
 }
 
 .product-card:hover .product-title {
-  color: #046A38 !important;
+  color: #046a38 !important;
   text-decoration: underline;
 }
 
@@ -1181,14 +1181,14 @@
   .article-with-sidebar {
     flex-direction: column;
   }
-  
+
   .product-sidebar {
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
     position: static;
   }
-  
+
   .products-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1201,11 +1201,11 @@
     padding: 0 0.5rem;
     gap: 1.5rem;
   }
-  
+
   .product-sidebar {
     padding: 16px;
   }
-  
+
   .products-list {
     grid-template-columns: 1fr;
   }
@@ -1221,4 +1221,230 @@
 .articles-main {
   flex: 1;
   min-width: 0;
+}
+
+/* ===============================
+   HOMEPAGE STYLES - SIMPLIFIED
+   =============================== */
+
+/* Main Header Section */
+.gg-header {
+  background-color: #fbf9f6;
+  padding: 3rem 2rem;
+}
+
+.custom-constrained {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Homepage Title */
+#gg-home-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+#gg-home-header h1 {
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: #046a38;
+  margin: 0 0 1rem 0;
+}
+
+#gg-home-header p {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Category Buttons Grid */
+#gg-home-links ul {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 3rem 0;
+}
+
+#gg-home-links li {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+#gg-home-links li:hover {
+  transform: translateY(-2px);
+}
+
+#gg-home-links a {
+  display: block;
+  padding: 2rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+#gg-home-links .gg-link-icon {
+  margin-bottom: 1rem;
+  justify-items: center;
+}
+
+#gg-home-links h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+#gg-home-links p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Search Section */
+#gg-home-search {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+#gg-home-search h2 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+/* Category Sections */
+.article-row-three {
+  padding: 3rem 0;
+}
+
+.article-row-three.odd {
+  background-color: #fff;
+}
+
+.article-row-three.even {
+  background-color: #fbf9f6;
+}
+
+.row-full-width-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Category Headers */
+.gg-row-columns-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.gg-row-columns-header h3 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.gg-row-columns-header p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0.5rem 0 0 0;
+}
+
+.pagebuilder-button-primary {
+  background: none;
+  border: none;
+  color: #046a38;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pagebuilder-button-primary:hover {
+  text-decoration: underline;
+}
+
+/* Articles Grid */
+.pagebuilder-column-line {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.pagebuilder-column img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* RESPONSIVE DESIGN */
+
+@media (max-width: 1024px) {
+  #gg-home-links ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pagebuilder-column-line {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .gg-header {
+    padding: 2rem 1rem;
+  }
+
+  #gg-home-header h1 {
+    font-size: 2rem;
+  }
+
+  #gg-home-links ul {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  #gg-home-links a {
+    padding: 1.5rem 0.5rem;
+  }
+
+  #gg-home-links h4 {
+    font-size: 1rem;
+  }
+
+  #gg-home-links p {
+    font-size: 0.8rem;
+  }
+
+  .gg-row-columns-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .pagebuilder-column-line {
+    grid-template-columns: 1fr;
+  }
+
+  .row-full-width-inner {
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #gg-home-header h1 span {
+    display: block;
+  }
+
+  #gg-home-links li h4 span {
+    display: block;
+  }
 }

@@ -195,6 +195,37 @@ async function getAllCategories() {
   }
 }
 
+// Get top-level categories with sample articles for homepage
+async function getTopLevelCategoriesWithArticles() {
+  try {
+    // Get categories that don't have a parent (top-level categories)
+    const topLevelCategories = await contentfulClient.getEntries({
+      content_type: "category",
+      "fields.parent[exists]": false, // Categories without a parent
+      limit: 10,
+    });
+
+    console.log(`Found ${topLevelCategories.items.length} top-level categories`);
+
+    const categoriesWithArticles = [];
+
+    for (const category of topLevelCategories.items) {
+      // Get 3 most recent articles for this category
+      const { items: articles } = await getCategoryArticles(category.sys.id, 3, 0);
+      
+      categoriesWithArticles.push({
+        category,
+        articles: articles.slice(0, 3), // Ensure max 3 articles
+      });
+    }
+
+    return categoriesWithArticles;
+  } catch (error) {
+    console.error("Error fetching top-level categories with articles:", error);
+    return [];
+  }
+}
+
 // Get articles by category from Contentful (supports hierarchical aggregation)
 async function getCategoryArticles(categoryId, limit = 100, skip = 0) {
   try {
@@ -394,6 +425,59 @@ app.get("/render/article/:entryId", async (req, res) => {
     });
   } catch (error) {
     console.error("Error rendering article:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Homepage render and submit route (must come before generic route)
+app.post("/render-and-submit/garden-guide-test", async (req, res) => {
+  try {
+    const HomePage = require("./src/pages/HomePage.jsx");
+    
+    // Fetch top-level categories with articles
+    const categoriesWithArticles = await getTopLevelCategoriesWithArticles();
+    
+    console.log(`Rendering homepage for Magento with ${categoriesWithArticles.length} categories`);
+    
+    const { html } = await renderPageToStatic(
+      HomePage,
+      {
+        categoriesWithArticles,
+        title: "Burpee Garden Guide - Homepage",
+      },
+      { inlineCSS: true, inlineJS: true }
+    );
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/homepage.html`, html);
+
+    // Submit to Magento
+    const { submitHomepageToMagento } = require("./src/utils/magentoAPI");
+    const magentoResult = await submitHomepageToMagento(html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `Homepage rendered and ${magentoResult.action} in Magento`,
+        categories: categoriesWithArticles.length,
+        magento: {
+          action: magentoResult.action,
+          identifier: magentoResult.identifier,
+          magentoId: magentoResult.magentoId,
+          status: magentoResult.status,
+        },
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Homepage rendered but failed to submit to Magento",
+        categories: categoriesWithArticles.length,
+        error: magentoResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering homepage:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1225,6 +1309,28 @@ app.post("/db/cms-pages/make-contentful-searchable", async (req, res) => {
   }
 });
 
+// Homepage preview route
+app.get("/preview/garden-guide-test", async (req, res) => {
+  try {
+    const HomePage = require("./src/pages/HomePage.jsx");
+    
+    // Fetch top-level categories with articles
+    const categoriesWithArticles = await getTopLevelCategoriesWithArticles();
+    
+    console.log(`Rendering homepage with ${categoriesWithArticles.length} categories`);
+    
+    const { html } = await renderPageToStatic(HomePage, {
+      categoriesWithArticles,
+      title: "Burpee Garden Guide - Homepage",
+    });
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error rendering homepage preview:", error);
+    res.status(500).send("<h1>Error loading homepage</h1>");
+  }
+});
+
 // Header preview route
 app.get("/preview/header", async (req, res) => {
   try {
@@ -1247,6 +1353,7 @@ app.listen(PORT, () => {
   console.log(`📚 View instructions at http://localhost:${PORT}/`);
   console.log(`🔍 List entries at http://localhost:${PORT}/api/entries`);
   console.log(`🎨 Header preview at http://localhost:${PORT}/preview/header`);
+  console.log(`🏠 Homepage preview at http://localhost:${PORT}/preview/garden-guide-test`);
   console.log(
     `\\n💡 To preview an article: http://localhost:${PORT}/preview/article/[entryId]`
   );
