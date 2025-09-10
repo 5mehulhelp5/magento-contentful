@@ -84,6 +84,26 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
                       },
                       `View All ${categoryTitle} Articles`
                     ),
+                    React.createElement(
+                      "svg",
+                      {
+                        key: "chevron-right",
+                        className: "chevron-right",
+                        xmlns: "http://www.w3.org/2000/svg",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        strokeWidth: "2",
+                        stroke: "currentColor",
+                        width: "16",
+                        height: "16",
+                        "aria-hidden": "true",
+                      },
+                      React.createElement("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        d: "m9 18 6-6-6-6",
+                      })
+                    ),
                   ]
                 )
               )
@@ -121,6 +141,51 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
                 })
               );
             })
+          )
+        ),
+
+        // Mobile-only button (appears below articles on mobile)
+        React.createElement(
+          "div",
+          {
+            key: "mobile-button",
+            className: "mobile-button-container",
+          },
+          React.createElement(
+            "a",
+            {
+              className: "view-all-button mobile-view-all",
+              href: viewAllLink,
+            },
+            [
+              React.createElement(
+                "span",
+                {
+                  key: "mobile-button-text",
+                },
+                `View All ${categoryTitle} Articles`
+              ),
+              React.createElement(
+                "svg",
+                {
+                  key: "mobile-chevron-right",
+                  className: "chevron-right",
+                  xmlns: "http://www.w3.org/2000/svg",
+                  fill: "none",
+                  viewBox: "0 0 24 24",
+                  strokeWidth: "2",
+                  stroke: "currentColor",
+                  width: "16",
+                  height: "16",
+                  "aria-hidden": "true",
+                },
+                React.createElement("path", {
+                  strokeLinecap: "round",
+                  strokeLinejoin: "round",
+                  d: "m9 18 6-6-6-6",
+                })
+              ),
+            ]
           )
         ),
       ]
