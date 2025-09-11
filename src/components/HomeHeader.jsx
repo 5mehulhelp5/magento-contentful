@@ -25,7 +25,7 @@ const HomeHeader = () => {
     },
     {
       name: ["Kitchen", " Gardening"],
-      href: "/garden-guide/edible-gardening", 
+      href: "/garden-guide/edible-gardening",
       icon: KitchenGardening,
       description: "Herbs, veggies, and fruit from your own garden.",
     },
@@ -62,14 +62,7 @@ const HomeHeader = () => {
               {
                 key: "title",
               },
-              [
-                React.createElement("span", { key: "burpee" }, "Burpee"),
-                React.createElement(
-                  "span",
-                  { key: "garden-guide" },
-                  " Garden Guide"
-                ),
-              ]
+              "Burpee Garden Guide"
             ),
             React.createElement(
               "p",
@@ -81,12 +74,13 @@ const HomeHeader = () => {
           ]
         ),
 
-        // Category buttons
+        // Category buttons (desktop)
         React.createElement(
           "div",
           {
             key: "gg-home-links",
             id: "gg-home-links",
+            className: "category-buttons-desktop",
           },
           React.createElement(
             "ul",
@@ -120,8 +114,8 @@ const HomeHeader = () => {
                       {
                         key: "title",
                       },
-                      Array.isArray(button.name) 
-                        ? button.name.map((part, partIndex) => 
+                      Array.isArray(button.name)
+                        ? button.name.map((part, partIndex) =>
                             React.createElement(
                               "span",
                               {
@@ -146,6 +140,130 @@ const HomeHeader = () => {
               );
             })
           )
+        ),
+
+        // Mobile category buttons (4 column grid)
+        React.createElement(
+          "div",
+          {
+            key: "category-buttons-mobile",
+            className: "category-buttons-mobile",
+            style: {
+              display: "none", // Hidden by default, shown on mobile via CSS
+              gridTemplateColumns: "1fr 1fr 1fr 1fr",
+              gap: "1rem",
+              width: "100%",
+              marginTop: "1rem",
+              marginBottom: "2rem",
+            },
+          },
+          categoryButtons.map((button) => {
+            const IconComponent = button.icon;
+
+            // Create mobile button text with line breaks
+            let mobileButtonText;
+            if (
+              button.name === "Get Started" ||
+              (Array.isArray(button.name) &&
+                button.name.join("").includes("Get Started"))
+            ) {
+              mobileButtonText = [
+                "Get",
+                React.createElement("br", { key: "br" }),
+                "Started",
+              ];
+            } else if (
+              button.name === "Kitchen Gardening" ||
+              (Array.isArray(button.name) &&
+                button.name.join("").includes("Kitchen"))
+            ) {
+              mobileButtonText = "Kitchen Garden";
+            } else if (
+              button.name === "Flowers & More" ||
+              (Array.isArray(button.name) &&
+                button.name.join("").includes("Flowers"))
+            ) {
+              mobileButtonText = [
+                "Flowers",
+                React.createElement("br", { key: "br" }),
+                "& More",
+              ];
+            } else if (button.name === "Garden Care") {
+              mobileButtonText = [
+                "Garden",
+                React.createElement("br", { key: "br" }),
+                "Care",
+              ];
+            } else {
+              mobileButtonText = Array.isArray(button.name)
+                ? button.name.join("")
+                : button.name;
+            }
+
+            return React.createElement(
+              "div",
+              {
+                key: `mobile-${
+                  Array.isArray(button.name)
+                    ? button.name.join("")
+                    : button.name
+                }`,
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                },
+              },
+              [
+                // Icon square container (clickable)
+                React.createElement(
+                  "a",
+                  {
+                    key: "icon-link",
+                    href: button.href,
+                    className: "category-button-mobile",
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "65px",
+                      height: "65px",
+                      border: "1px solid #046A38",
+                      borderRadius: "1rem",
+                      backgroundColor: "white",
+                      textDecoration: "none",
+                      transition: "all 0.2s ease",
+                      marginBottom: "0.75rem",
+                    },
+                  },
+                  React.createElement(IconComponent, {
+                    key: "svg-icon",
+                    style: {
+                      width: "50px",
+                      height: "50px",
+                    },
+                  })
+                ),
+                // Text label (outside the square)
+                React.createElement(
+                  "span",
+                  {
+                    key: "text",
+                    style: {
+                      fontSize: "16px",
+                      fontWeight: "600",
+                      lineHeight: "1.3",
+                      color: "black",
+                      maxWidth: "100px",
+                      wordWrap: "break-word",
+                    },
+                  },
+                  mobileButtonText
+                ),
+              ]
+            );
+          })
         ),
 
         // Search section

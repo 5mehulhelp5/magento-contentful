@@ -905,7 +905,7 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
  */
 async function submitHomepageToMagento(renderedHtml) {
   const title = "Burpee Garden Guide";
-  const identifier = "garden-guide-test";
+  const identifier = "garden-guide";
 
   console.log(`Processing homepage: ${title}`);
 

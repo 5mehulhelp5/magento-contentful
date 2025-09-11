@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Server Operations
 - `npm start` - Run production server on port 3000
-- `npm run dev` - Run development server with auto-reload using nodemon
+- `npm run dev` - Run development server with auto-reload using nodemon (watches src/, public/styles.css)
 - `node server.js` - Direct server execution
 
 ### Testing and Validation
@@ -18,7 +18,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Bulk Operations
 - `python3 bulk_sync.py` - Bulk sync articles from Contentful to Magento (requires Python setup)
+- `python3 bulk_category_sync.py` - Bulk sync category pages from Contentful to Magento
+- `python3 bulk_faq_sync.py` - Bulk sync FAQ content from Contentful to Magento
 - `./run_bulk_sync.sh` - Shell script for automated bulk sync
+- `./run_category_sync.sh` - Shell script for automated category sync with logging
 - Database integration available via `src/utils/database.js` for MySQL operations
 
 ## High-Level Architecture
@@ -44,9 +47,9 @@ This is a **bi-directional content management system** that bridges Contentful C
 
 ### React Server-Side Rendering Architecture
 - **No JSX in production**: Uses `React.createElement()` for server-side rendering
-- **Babel transpilation**: JSX files in `/src/` are transpiled at runtime via `@babel/register`
-- **Component structure**: Reusable components in `/src/components/`, page templates in `/src/pages/`
-- **CSS-in-JS approach**: Inline styles with utility classes for responsive design
+- **Babel transpilation**: JSX files in `/src/` are transpiled at runtime via `@babel/register` with React classic runtime
+- **Component structure**: Reusable components in `/src/components/`, page templates in `/src/pages/`, SVG icons in `/src/svgs/`
+- **External CSS**: CSS served from `/public/styles.css` with caching, replacing CSS-in-JS approach
 - **Static HTML generation**: Renders to static HTML files in `/output/` directory
 
 ### API Integration Patterns
@@ -63,10 +66,12 @@ This is a **bi-directional content management system** that bridges Contentful C
 ## Code Organization Patterns
 
 ### File Structure Logic
-- `/src/components/` - Reusable React components (ArticleCard, RichTextRenderer)
+- `/src/components/` - Reusable React components (ArticleCard, RichTextRenderer, Header)
 - `/src/pages/` - Page templates for different content types (ArticlePage, CategoryListPage)
 - `/src/utils/` - Business logic utilities (magentoAPI, contentfulManagement, authentication)
+- `/src/svgs/` - SVG React components for category icons (KitchenGardening, PlantCare, etc.)
 - `/output/` - Generated static HTML files
+- `/public/` - Static assets including external CSS file (styles.css)
 - Root-level scripts for deployment and bulk operations
 
 ### Component Design Patterns
@@ -139,3 +144,10 @@ DATABASE_HOST/USER/PASSWORD/NAME - MySQL connection (optional)
 - Bulk sync capabilities for large content migrations
 - Database integration optional but recommended for advanced operations
 - I usually have the server running with nodemon on 3000. Always try it before starting your own server.
+- Only make commits when I specifically ask you to.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

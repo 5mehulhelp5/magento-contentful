@@ -50,6 +50,8 @@
 
   .category-buttons-mobile {
     display: grid !important;
+    max-width: 500px;
+    margin: auto;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     width: 100%;
@@ -561,7 +563,7 @@
 .article-container {
   max-width: 56rem;
   margin: 0 auto;
-  padding: 32px 16px;
+  padding: 16px 32px 0px;
 }
 
 .article-title {
@@ -600,7 +602,7 @@
 .article-content-section {
   max-width: 56rem;
   margin: 0 auto;
-  padding: 48px 16px;
+  padding: 0px 16px;
 }
 
 .article-content {
@@ -610,7 +612,7 @@
 /* Responsive adjustments */
 @media (min-width: 768px) {
   .article-container {
-    padding: 32px 24px;
+    padding: 0px 24px 32px;
   }
 
   .article-title {
@@ -628,7 +630,7 @@
 
 @media (min-width: 1024px) {
   .article-container {
-    padding: 32px 32px;
+    padding: 0px 32px 32px;
   }
 
   .article-image-section {
@@ -1253,7 +1255,7 @@
 
 #gg-home-header p {
   font-size: 1.2rem;
-  color: #666;
+  color: #000000;
   margin: 0;
 }
 
@@ -1300,7 +1302,7 @@
 
 #gg-home-links p {
   font-size: 0.9rem;
-  color: #666;
+  color: #080808;
   margin: 0;
   line-height: 1.4;
 }
@@ -1346,15 +1348,16 @@
 }
 
 .gg-row-columns-header h3 {
+  font-family: "Reckless Neue";
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #333;
   margin: 0;
 }
 
 .gg-row-columns-header p {
   font-size: 1.1rem;
-  color: #666;
+  color: #000000;
   margin: 0.5rem 0 0 0;
 }
 
@@ -1438,32 +1441,18 @@
     line-height: 2.6rem;
   }
 
-  #gg-home-links ul {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+  #gg-home-search h2 {
+    font-size: 1.2rem;
   }
 
-  #gg-home-links li {
-    height: 150px;
-    align-content: center;
-  }
-
-  #gg-home-links a {
-    padding: 0;
-  }
-
-  #gg-home-links h4 {
-    font-size: 1rem;
-  }
-
-  #gg-home-links p {
-    font-size: 0.8rem;
+  /* Hide desktop category buttons on mobile */
+  .category-buttons-desktop {
     display: none;
   }
 
-  #gg-home-links .mobile-break {
-    display: block;
-    line-height: 1.3rem;
+  /* Show mobile category buttons on mobile */
+  .category-buttons-mobile {
+    display: grid !important;
   }
 
   .gg-row-columns-header {
@@ -1488,6 +1477,10 @@
 
   .row-full-width-inner {
     padding: 0 1rem;
+  }
+
+  .gg-row-columns-header h3 {
+    font-size: 1.8rem;
   }
 }
 
