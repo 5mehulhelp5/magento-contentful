@@ -52,293 +52,179 @@ const CategoryListPage = ({
   // Create linkBase for production URLs - fallback for articles without frontendUrl
   const linkBase = ""; //`garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1].name)}`;
 
-  return React.createElement(
-    "div",
-    {
-      className: "page-layout",
-    },
-    [
-      // Header component
-      React.createElement(Header, {
-        key: "main-header",
-        breadcrumbs: headerBreadcrumbs,
-        currentPath: `/garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "")}`
-      }),
-      // Header section
-      React.createElement(
-        "div",
-        {
-          key: "header",
-          className: "page-header",
-        },
-        React.createElement(
-          "div",
-          {
-            className: "container page-header-content",
-          },
-          [
-            // Breadcrumb navigation
-            breadcrumbs.length > 1 &&
-              React.createElement(
-                "nav",
-                {
-                  key: "breadcrumbs",
-                  className: "breadcrumbs",
-                },
-                React.createElement(
-                  "ol",
-                  {
-                    className: "breadcrumb-list",
-                  },
-                  breadcrumbs.map((crumb, index) =>
-                    React.createElement(
-                      "li",
-                      {
-                        key: index,
-                        className: "breadcrumb-item",
-                      },
-                      [
-                        index > 0 &&
-                          React.createElement(
-                            "span",
-                            {
-                              key: "separator",
-                              className: "breadcrumb-separator",
-                            },
-                            "/"
-                          ),
-                        React.createElement(
-                          "span",
-                          {
-                            key: "name",
-                            className: crumb.isLast
-                              ? "breadcrumb-current"
-                              : "breadcrumb-link",
-                          },
-                          crumb.name
-                        ),
-                      ]
-                    )
-                  )
-                )
-              ),
+  return (
+    <div className="page-layout">
+      {/* Header component */}
+      <Header
+        key="main-header"
+        breadcrumbs={headerBreadcrumbs}
+        currentPath={`/garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "")}`}
+      />
+      {/* Header section */}
+      <div key="header" className="page-header">
+        <div className="container page-header-content">
+          {/* Breadcrumb navigation */}
+          {breadcrumbs.length > 1 && (
+            <nav key="breadcrumbs" className="breadcrumbs">
+              <ol className="breadcrumb-list">
+                {breadcrumbs.map((crumb, index) => (
+                  <li key={index} className="breadcrumb-item">
+                    {index > 0 && (
+                      <span key="separator" className="breadcrumb-separator">
+                        /
+                      </span>
+                    )}
+                    <span
+                      key="name"
+                      className={
+                        crumb.isLast
+                          ? "breadcrumb-current"
+                          : "breadcrumb-link"
+                      }
+                    >
+                      {crumb.name}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
 
-            // Category title
-            React.createElement(
-              "div",
-              {
-                key: "title-section",
-                className: "page-title-section",
-              },
-              React.createElement(
-                "h1",
-                {
-                  key: "title",
-                  className: "page-title",
-                },
-                "Garden Guide: " + breadcrumbs[breadcrumbs.length - 1].name ||
-                  "Category"
-              )
-            ),
-          ]
-        )
-      ),
+          {/* Category title */}
+          <div key="title-section" className="page-title-section">
+            <h1 key="title" className="page-title">
+              Garden Guide: {breadcrumbs[breadcrumbs.length - 1].name || "Category"}
+            </h1>
+          </div>
+        </div>
+      </div>
 
-      // Main content area with sidebar and articles
-      React.createElement(
-        "div",
-        {
-          key: "main-content",
-          className: "container",
-        },
-        React.createElement(
-          "div",
-          {
-            className: "content-with-sidebar",
-          },
-          [
-            // Category Sidebar
-            React.createElement(CategorySidebar, {
-              key: "category-sidebar",
-              categories: allCategories,
-              currentCategoryId: currentCategoryId,
-            }),
+      {/* Main content area with sidebar and articles */}
+      <div key="main-content" className="container">
+        <div className="content-with-sidebar">
+          {/* Category Sidebar */}
+          <CategorySidebar
+            key="category-sidebar"
+            categories={allCategories}
+            currentCategoryId={currentCategoryId}
+          />
 
-            // Articles section
-            React.createElement(
-              "div",
-              {
-                key: "articles-content",
-                className: "articles-main",
-              },
-              [
-                // Results count
-                totalCount > 0 &&
-                  React.createElement(
-                    "div",
-                    {
-                      key: "results-count",
-                      className: "results-count",
-                    },
-                    React.createElement(
-                      "p",
-                      {
-                        className: "results-text",
-                      },
-                      [
-                        "Showing ",
-                        React.createElement(
-                          "span",
-                          {
-                            key: "current-count",
-                            className: "results-number",
-                            id: "current-article-count",
-                          },
-                          initialArticles.length.toString()
-                        ),
-                        " of ",
-                        React.createElement(
-                          "span",
-                          {
-                            key: "total-count",
-                            className: "results-number",
-                          },
-                          totalCount.toString()
-                        ),
-                        totalCount === 1 ? " article" : " articles",
-                      ]
-                    )
-                  ),
+          {/* Articles section */}
+          <div key="articles-content" className="articles-main">
+            {/* Results count */}
+            {totalCount > 0 && (
+              <div key="results-count" className="results-count">
+                <p className="results-text">
+                  Showing{" "}
+                  <span
+                    key="current-count"
+                    className="results-number"
+                    id="current-article-count"
+                  >
+                    {initialArticles.length.toString()}
+                  </span>
+                  {" "}of{" "}
+                  <span key="total-count" className="results-number">
+                    {totalCount.toString()}
+                  </span>
+                  {totalCount === 1 ? " article" : " articles"}
+                </p>
+              </div>
+            )}
 
-                // Articles Grid
-                initialArticles.length > 0
-                  ? React.createElement(
-                      "div",
-                      {
-                        key: "article-grid",
-                        className: "articles-grid",
-                        id: "articles-grid",
-                      },
-                      [
-                        ...initialArticles.map((article, index) => {
-                          const articleHTML = ArticleCard({
-                            article,
-                            linkBase,
-                          });
-                          return React.createElement("div", {
-                            key: article.sys?.id || index,
-                            dangerouslySetInnerHTML: { __html: articleHTML },
-                          });
-                        }),
-                        // Loading indicator for infinite scroll
-                        hasMoreArticles &&
-                          React.createElement(
-                            "div",
-                            {
-                              key: "loading-indicator",
-                              id: "loading-indicator",
-                              className: "loading-indicator",
-                              style: { display: "none" },
-                            },
-                            [
-                              React.createElement(
-                                "div",
-                                {
-                                  key: "loading-spinner",
-                                  className: "loading-spinner",
-                                },
-                                "Loading more articles..."
-                              ),
-                              React.createElement(
-                                "button",
-                                {
-                                  key: "load-more-button",
-                                  className: "load-more-button",
-                                  id: "load-more-button",
-                                  "aria-label": "Load more articles",
-                                },
-                                "Load More"
-                              ),
-                            ]
-                          ),
-                      ]
-                    )
-                  : // Empty state
-                    React.createElement(
-                      "div",
-                      {
-                        key: "empty-state",
-                        className: "empty-state",
-                      },
-                      [
-                        React.createElement(
-                          "div",
-                          {
-                            key: "empty-content",
-                            className: "empty-content",
-                          },
-                          [
-                            React.createElement(
-                              "h3",
-                              {
-                                key: "empty-title",
-                                className: "empty-title",
-                              },
-                              "No articles found"
-                            ),
-                            React.createElement(
-                              "p",
-                              {
-                                key: "empty-description",
-                                className: "empty-description",
-                              },
-                              "There are no articles in this category yet."
-                            ),
-                          ]
-                        ),
-                      ]
-                    ),
-              ]
-            ),
-          ]
-        )
-      ),
+            {/* Articles Grid */}
+            {initialArticles.length > 0 ? (
+              <div
+                key="article-grid"
+                className="articles-grid"
+                id="articles-grid"
+              >
+                {initialArticles.map((article, index) => {
+                  const articleHTML = ArticleCard({
+                    article,
+                    linkBase,
+                  });
+                  return (
+                    <div
+                      key={article.sys?.id || index}
+                      dangerouslySetInnerHTML={{ __html: articleHTML }}
+                    />
+                  );
+                })}
+                {/* Loading indicator for infinite scroll */}
+                {hasMoreArticles && (
+                  <div
+                    key="loading-indicator"
+                    id="loading-indicator"
+                    className="loading-indicator"
+                    style={{ display: "none" }}
+                  >
+                    <div key="loading-spinner" className="loading-spinner">
+                      Loading more articles...
+                    </div>
+                    <button
+                      key="load-more-button"
+                      className="load-more-button"
+                      id="load-more-button"
+                      aria-label="Load more articles"
+                    >
+                      Load More
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Empty state */
+              <div key="empty-state" className="empty-state">
+                <div key="empty-content" className="empty-content">
+                  <h3 key="empty-title" className="empty-title">
+                    No articles found
+                  </h3>
+                  <p key="empty-description" className="empty-description">
+                    There are no articles in this category yet.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-      // Embed article data for infinite scroll
-      React.createElement("script", {
-        key: "article-data",
-        type: "application/json",
-        id: "article-data",
-        dangerouslySetInnerHTML: {
+      {/* Embed article data for infinite scroll */}
+      <script
+        key="article-data"
+        type="application/json"
+        id="article-data"
+        dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             articles: articles,
             linkBase: linkBase,
             initialCount: initialArticleCount,
             totalCount: totalCount,
           }),
-        },
-      }),
+        }}
+      />
 
-      // Load unified article card template
-      React.createElement("script", {
-        key: "article-template-script",
-        src: `/articleCardTemplate.js?v=${Date.now()}`,
-      }),
+      {/* Load unified article card template */}
+      <script
+        key="article-template-script"
+        src={`/articleCardTemplate.js?v=${Date.now()}`}
+      />
 
-      // Load infinite scroll JavaScript
-      React.createElement("script", {
-        key: "infinite-scroll-script",
-        src: `/infiniteScroll.js?v=${Date.now()}`,
-        defer: true,
-      }),
+      {/* Load infinite scroll JavaScript */}
+      <script
+        key="infinite-scroll-script"
+        src={`/infiniteScroll.js?v=${Date.now()}`}
+        defer
+      />
 
-      // Load category sidebar JavaScript
-      React.createElement("script", {
-        key: "category-sidebar-script",
-        src: `/categorySidebar.js?v=${Date.now()}`,
-        defer: true,
-      }),
-    ]
+      {/* Load category sidebar JavaScript */}
+      <script
+        key="category-sidebar-script"
+        src={`/categorySidebar.js?v=${Date.now()}`}
+        defer
+      />
+    </div>
   );
 };
 

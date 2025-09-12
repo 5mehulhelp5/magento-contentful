@@ -33,116 +33,83 @@ function FAQPage({ data = {}, title }) {
 
   const formattedDate = formatDate(publishedAt);
 
-  return React.createElement(
-    "div",
-    { className: "faq-page" },
-    
-    // FAQ Header
-    React.createElement(
-      "div",
-      { className: "faq-header" },
-      React.createElement(
-        "div",
-        { className: "faq-container" },
-        React.createElement(
-          "div",
-          { className: "faq-breadcrumb" },
-          React.createElement(
-            "a",
-            { href: "/help", className: "breadcrumb-link" },
-            "Help Center"
-          ),
-          React.createElement("span", { className: "breadcrumb-separator" }, " > "),
-          freshdeskCategoryName &&
-            React.createElement(
-              "span",
-              { className: "breadcrumb-category" },
-              freshdeskCategoryName
-            )
-        ),
-        React.createElement("h1", { className: "faq-question" }, title),
-        formattedDate &&
-          React.createElement(
-            "time",
-            { className: "faq-date" },
-            `Published ${formattedDate}`
-          )
-      )
-    ),
+  return (
+    <div className="faq-page">
+      {/* FAQ Header */}
+      <div className="faq-header">
+        <div className="faq-container">
+          <div className="faq-breadcrumb">
+            <a href="/help" className="breadcrumb-link">
+              Help Center
+            </a>
+            <span className="breadcrumb-separator"> &gt; </span>
+            {freshdeskCategoryName && (
+              <span className="breadcrumb-category">
+                {freshdeskCategoryName}
+              </span>
+            )}
+          </div>
+          <h1 className="faq-question">{title}</h1>
+          {formattedDate && (
+            <time className="faq-date">
+              Published {formattedDate}
+            </time>
+          )}
+        </div>
+      </div>
 
-    // FAQ Answer Section
-    React.createElement(
-      "article",
-      { className: "faq-content-section" },
-      React.createElement(
-        "div",
-        { className: "faq-content" },
-        React.createElement(
-          "div",
-          { className: "faq-answer" },
-          body && React.createElement(RichTextRenderer, { document: body })
-        )
-      )
-    ),
+      {/* FAQ Answer Section */}
+      <article className="faq-content-section">
+        <div className="faq-content">
+          <div className="faq-answer">
+            {body && <RichTextRenderer document={body} />}
+          </div>
+        </div>
+      </article>
 
-    // FAQ Metadata Section
-    React.createElement(
-      "div",
-      { className: "faq-meta" },
-      React.createElement(
-        "div",
-        { className: "faq-container" },
-        
-        // Engagement Stats
-        (freshdeskHits || freshdeskThumbsUp || freshdeskThumbsDown) &&
-          React.createElement(
-            "div",
-            { className: "faq-stats" },
-            React.createElement("h3", null, "Was this helpful?"),
-            React.createElement(
-              "div",
-              { className: "faq-stats-row" },
-              freshdeskHits &&
-                React.createElement(
-                  "span",
-                  { className: "stat-item" },
-                  `${freshdeskHits} views`
-                ),
-              freshdeskThumbsUp &&
-                React.createElement(
-                  "span",
-                  { className: "stat-item positive" },
-                  `👍 ${freshdeskThumbsUp}`
-                ),
-              freshdeskThumbsDown &&
-                React.createElement(
-                  "span",
-                  { className: "stat-item negative" },
-                  `👎 ${freshdeskThumbsDown}`
-                )
-            )
-          ),
+      {/* FAQ Metadata Section */}
+      <div className="faq-meta">
+        <div className="faq-container">
+          {/* Engagement Stats */}
+          {(freshdeskHits || freshdeskThumbsUp || freshdeskThumbsDown) && (
+            <div className="faq-stats">
+              <h3>Was this helpful?</h3>
+              <div className="faq-stats-row">
+                {freshdeskHits && (
+                  <span className="stat-item">
+                    {freshdeskHits} views
+                  </span>
+                )}
+                {freshdeskThumbsUp && (
+                  <span className="stat-item positive">
+                    👍 {freshdeskThumbsUp}
+                  </span>
+                )}
+                {freshdeskThumbsDown && (
+                  <span className="stat-item negative">
+                    👎 {freshdeskThumbsDown}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
-        // Tags
-        tags.length > 0 &&
-          React.createElement(
-            "div",
-            { className: "faq-tags" },
-            React.createElement("h4", null, "Related Topics:"),
-            React.createElement(
-              "div",
-              { className: "tags-list" },
-              tags.map((tag, index) =>
-                React.createElement(
-                  "span",
-                  { key: index, className: "faq-tag" },
-                  tag
-                )
-              )
-            )
-          )
-      )
-    )
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="faq-tags">
+              <h4>Related Topics:</h4>
+              <div className="tags-list">
+                {tags.map((tag, index) => (
+                  <span key={index} className="faq-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

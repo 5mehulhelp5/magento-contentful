@@ -90,179 +90,129 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
       .trim();
   };
 
-  return React.createElement(
-    "aside",
-    {
-      className: "category-sidebar",
-      id: "category-sidebar",
-    },
-    [
-      // Mobile dropdown toggle
-      React.createElement(
-        "div",
-        {
-          key: "mobile-dropdown-toggle",
-          className: "mobile-dropdown-toggle",
-        },
-        React.createElement(
-          "button",
-          {
-            className: "mobile-dropdown-button",
-            "aria-expanded": "false",
-            "aria-controls": "category-navigation",
-            "data-toggle": "mobile-dropdown",
-          },
-          [
-            "Sort By",
-            React.createElement(
-              "svg",
-              {
-                key: "dropdown-chevron",
-                className: "mobile-dropdown-chevron",
-                "aria-hidden": "true",
-                width: "16",
-                height: "16",
-                viewBox: "0 0 24 24",
-                fill: "none",
-                stroke: "currentColor",
-                strokeWidth: "2",
-                strokeLinecap: "round",
-                strokeLinejoin: "round"
-              },
-              React.createElement(
-                "polyline",
-                {
-                  points: "6,9 12,15 18,9"
-                }
-              )
-            )
-          ]
-        )
-      ),
+  return (
+    <aside className="category-sidebar" id="category-sidebar">
+      {/* Mobile dropdown toggle */}
+      <div key="mobile-dropdown-toggle" className="mobile-dropdown-toggle">
+        <button
+          className="mobile-dropdown-button"
+          aria-expanded="false"
+          aria-controls="category-navigation"
+          data-toggle="mobile-dropdown"
+        >
+          Sort By
+          <svg
+            key="dropdown-chevron"
+            className="mobile-dropdown-chevron"
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="6,9 12,15 18,9" />
+          </svg>
+        </button>
+      </div>
 
-      // Category navigation
-      React.createElement(
-        "nav",
-        {
-          key: "category-nav",
-          className: "category-nav",
-          id: "category-navigation",
-        },
-        React.createElement(
-          "ul",
-          {
-            className: "category-list",
-          },
-          hierarchy.map((topLevelCategory, index) =>
-            React.createElement(
-              "li",
-              {
-                key: topLevelCategory.id,
-                className: `category-item top-level ${
-                  topLevelCategory.id === currentCategoryId ? "active" : ""
-                }`,
-              },
-              [
-                // Top-level category header with toggle
-                React.createElement(
-                  "div",
-                  {
-                    key: "category-header",
-                    className: "category-header",
-                    "data-category-id": topLevelCategory.id,
-                  },
-                  [
-                    // Category title/link
-                    React.createElement(
-                      "a",
-                      {
-                        key: "category-link",
-                        href: createCategoryUrl(topLevelCategory.id),
-                        className: "category-link",
-                      },
+      {/* Category navigation */}
+      <nav
+        key="category-nav"
+        className="category-nav"
+        id="category-navigation"
+      >
+        <ul className="category-list">
+          {hierarchy.map((topLevelCategory, index) => (
+            <li
+              key={topLevelCategory.id}
+              className={`category-item top-level ${
+                topLevelCategory.id === currentCategoryId ? "active" : ""
+              }`}
+            >
+              {/* Top-level category header with toggle */}
+              <div
+                key="category-header"
+                className="category-header"
+                data-category-id={topLevelCategory.id}
+              >
+                {/* Category title/link */}
+                <a
+                  key="category-link"
+                  href={createCategoryUrl(topLevelCategory.id)}
+                  className="category-link"
+                >
+                  {topLevelCategory.title}
+                </a>
+                {/* Toggle button for collapsible behavior */}
+                {topLevelCategory.children.length > 0 && (
+                  <button
+                    key="toggle-button"
+                    className="category-toggle"
+                    aria-expanded={shouldExpandTopLevel(topLevelCategory) ? "true" : "false"}
+                    aria-controls={`subcategories-${slugifyTitle(
                       topLevelCategory.title
-                    ),
-                    // Toggle button for collapsible behavior
-                    topLevelCategory.children.length > 0 &&
-                      React.createElement(
-                        "button",
-                        {
-                          key: "toggle-button",
-                          className: "category-toggle",
-                          "aria-expanded": shouldExpandTopLevel(topLevelCategory) ? "true" : "false",
-                          "aria-controls": `subcategories-${slugifyTitle(
-                            topLevelCategory.title
-                          )}`,
-                          "data-toggle": "collapse",
-                        },
-                        React.createElement(
-                          "svg",
-                          {
-                            className: "toggle-icon",
-                            "aria-hidden": "true",
-                            width: "16",
-                            height: "16",
-                            viewBox: "0 0 24 24",
-                            fill: "none",
-                            stroke: "currentColor",
-                            strokeWidth: "2",
-                            strokeLinecap: "round",
-                            strokeLinejoin: "round"
-                          },
-                          React.createElement(
-                            "polyline",
-                            {
-                              points: "6,9 12,15 18,9"
-                            }
-                          )
-                        )
-                      ),
-                  ]
-                ),
+                    )}`}
+                    data-toggle="collapse"
+                  >
+                    <svg
+                      className="toggle-icon"
+                      aria-hidden="true"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6,9 12,15 18,9" />
+                    </svg>
+                  </button>
+                )}
+              </div>
 
-                // Subcategories (collapsible)
-                topLevelCategory.children.length > 0 &&
-                  React.createElement(
-                    "ul",
-                    {
-                      key: "subcategories",
-                      id: `subcategories-${slugifyTitle(
-                        topLevelCategory.title
-                      )}`,
-                      className: `subcategory-list ${
-                        shouldExpandTopLevel(topLevelCategory) ? "expanded" : "collapsed"
-                      }`,
-                      "aria-expanded": shouldExpandTopLevel(topLevelCategory) ? "true" : "false",
-                    },
-                    topLevelCategory.children.map((subcategory) =>
-                      React.createElement(
-                        "li",
-                        {
-                          key: subcategory.id,
-                          className: `subcategory-item ${
-                            subcategory.id === currentCategoryId ? "active" : ""
-                          }`,
-                        },
-                        React.createElement(
-                          "a",
-                          {
-                            href: createCategoryUrl(subcategory.id),
-                            className: "subcategory-link",
-                          },
-                          // Remove parent prefix from subcategory titles for cleaner display
-                          subcategory.title.includes(" / ")
-                            ? subcategory.title.split(" / ").pop()
-                            : subcategory.title
-                        )
-                      )
-                    )
-                  ),
-              ]
-            )
-          )
-        )
-      ),
-    ]
+              {/* Subcategories (collapsible) */}
+              {topLevelCategory.children.length > 0 && (
+                <ul
+                  key="subcategories"
+                  id={`subcategories-${slugifyTitle(
+                    topLevelCategory.title
+                  )}`}
+                  className={`subcategory-list ${
+                    shouldExpandTopLevel(topLevelCategory) ? "expanded" : "collapsed"
+                  }`}
+                  aria-expanded={shouldExpandTopLevel(topLevelCategory) ? "true" : "false"}
+                >
+                  {topLevelCategory.children.map((subcategory) => (
+                    <li
+                      key={subcategory.id}
+                      className={`subcategory-item ${
+                        subcategory.id === currentCategoryId ? "active" : ""
+                      }`}
+                    >
+                      <a
+                        href={createCategoryUrl(subcategory.id)}
+                        className="subcategory-link"
+                      >
+                        {/* Remove parent prefix from subcategory titles for cleaner display */}
+                        {subcategory.title.includes(" / ")
+                          ? subcategory.title.split(" / ").pop()
+                          : subcategory.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 };
 

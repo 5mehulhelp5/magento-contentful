@@ -14,29 +14,23 @@ const HomePage = ({ categoriesWithArticles = [] }) => {
     { name: "Garden Guide" }, // Current page (no href)
   ];
 
-  return React.createElement(
-    "div",
-    {
-      className: "homepage",
-    },
-    [
-      // Navigation Header
+  return (
+    <div className="homepage">
+      {/* Navigation Header */}
 
-      // Home Header (Burpee Garden Guide section with category buttons and search)
-      React.createElement(HomeHeader, {
-        key: "home-header",
-      }),
+      {/* Home Header (Burpee Garden Guide section with category buttons and search) */}
+      <HomeHeader key="home-header" />
 
-      // Category sections with alternating backgrounds
-      ...categoriesWithArticles.map((categoryData, index) =>
-        React.createElement(CategorySection, {
-          key: categoryData.category.sys.id,
-          category: categoryData.category,
-          articles: categoryData.articles,
-          isEven: index % 2 === 1, // Alternate backgrounds (0=odd/cream, 1=even/white)
-        })
-      ),
-    ]
+      {/* Category sections with alternating backgrounds */}
+      {categoriesWithArticles.map((categoryData, index) => (
+        <CategorySection
+          key={categoryData.category.sys.id}
+          category={categoryData.category}
+          articles={categoryData.articles}
+          isEven={index % 2 === 1} // Alternate backgrounds (0=odd/cream, 1=even/white)
+        />
+      ))}
+    </div>
   );
 };
 

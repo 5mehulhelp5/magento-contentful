@@ -43,11 +43,10 @@ const ProductSidebar = ({ products = [] }) => {
 
   const productsToShow = products.length > 0 ? products : defaultProducts;
 
-  return React.createElement(
-    "aside",
-    {
-      className: "product-sidebar",
-      style: {
+  return (
+    <aside
+      className="product-sidebar"
+      style={{
         width: "280px",
         backgroundColor: "white",
         padding: "16px",
@@ -55,97 +54,84 @@ const ProductSidebar = ({ products = [] }) => {
         position: "sticky",
         top: "20px",
         overflowY: "auto",
-      },
-    },
-    [
-      // Products list (title removed)
-      React.createElement(
-        "div",
-        {
-          key: "products",
-          className: "products-list",
-          style: {
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-          },
-        },
-        productsToShow.map((product, index) =>
-          React.createElement(
-            "div",
-            {
-              key: `product-${index}`,
-              className: "product-card",
-              style: {
-                cursor: "pointer",
-              },
-            },
-            [
-              // Product image
-              React.createElement("img", {
-                key: "image",
-                src: product.image,
-                alt: product.title,
-                style: {
-                  width: "100%",
-                  height: "160px",
-                  aspectRatio: "1 / 1",
-                  objectFit: "cover",
-                  marginBottom: "12px",
-                },
-              }),
+      }}
+    >
+      {/* Products list (title removed) */}
+      <div
+        key="products"
+        className="products-list"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        {productsToShow.map((product, index) => (
+          <div
+            key={`product-${index}`}
+            className="product-card"
+            style={{
+              cursor: "pointer",
+            }}
+          >
+            {/* Product image */}
+            <img
+              key="image"
+              src={product.image}
+              alt={product.title}
+              style={{
+                width: "100%",
+                height: "160px",
+                aspectRatio: "1 / 1",
+                objectFit: "cover",
+                marginBottom: "12px",
+              }}
+            />
 
-              // Product title
-              React.createElement(
-                "h4",
-                {
-                  key: "title",
-                  className: "product-title",
-                  style: {
-                    fontSize: "1rem",
-                    fontWeight: "700",
-                    color: "#374151",
-                    marginBottom: "8px",
-                    lineHeight: "1.3",
-                    transition: "all 0.2s ease",
-                  },
-                },
-                product.title
-              ),
+            {/* Product title */}
+            <h4
+              key="title"
+              className="product-title"
+              style={{
+                fontSize: "1rem",
+                fontWeight: "700",
+                color: "#374151",
+                marginBottom: "8px",
+                lineHeight: "1.3",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {product.title}
+            </h4>
 
-              // Product description
-              React.createElement(
-                "p",
-                {
-                  key: "description",
-                  style: {
-                    fontSize: "0.875rem",
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                    lineHeight: "1.4",
-                  },
-                },
-                product.description
-              ),
+            {/* Product description */}
+            <p
+              key="description"
+              style={{
+                fontSize: "0.875rem",
+                color: "#6b7280",
+                marginBottom: "8px",
+                lineHeight: "1.4",
+              }}
+            >
+              {product.description}
+            </p>
 
-              // Product price
-              React.createElement(
-                "p",
-                {
-                  key: "price",
-                  style: {
-                    fontSize: "0.875rem",
-                    fontWeight: "400",
-                    color: "#374151",
-                  },
-                },
-                product.price
-              ),
-            ]
-          )
-        )
-      ),
-    ]
+            {/* Product price */}
+            <p
+              key="price"
+              style={{
+                fontSize: "0.875rem",
+                fontWeight: "400",
+                color: "#374151",
+              }}
+            >
+              {product.price}
+            </p>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 };
 

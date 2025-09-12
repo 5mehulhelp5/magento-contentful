@@ -58,55 +58,74 @@ function parseMarkdownTable(text) {
 
 // Component to render a markdown table as React elements
 function MarkdownTable({ headers, rows }) {
-  return React.createElement('div', {
-    className: 'overflow-x-auto my-6'
-  }, 
-    React.createElement('table', {
-      className: 'min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg'
-    }, [
-      React.createElement('thead', {
-        className: 'bg-green-50',
-        key: 'thead'
-      }, 
-        React.createElement('tr', {}, 
-          headers.map((header, i) => 
-            React.createElement('th', {
-              key: i,
-              className: 'px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-200'
-            }, header)
-          )
-        )
-      ),
-      React.createElement('tbody', {
-        className: 'bg-white divide-y divide-gray-200',
-        key: 'tbody'
-      }, 
-        rows.map((row, i) => 
-          React.createElement('tr', {
-            key: i,
-            className: `${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`
-          }, 
-            row.map((cell, j) => 
-              React.createElement('td', {
-                key: j,
-                className: 'px-4 py-3 text-sm text-gray-700 border-b border-gray-200'
-              }, cell)
-            )
-          )
-        )
-      )
-    ])
+  return (
+    <div style={{
+      overflowX: 'auto',
+      margin: '1.5rem 0'
+    }}>
+      <table style={{
+        minWidth: '100%',
+        borderCollapse: 'collapse',
+        border: '1px solid #d1d5db',
+        borderRadius: '0.5rem'
+      }}>
+        <thead style={{
+          backgroundColor: '#f0f9f0'
+        }}>
+          <tr>
+            {headers.map((header, i) => (
+              <th key={i} style={{
+                padding: '0.75rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#111827',
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody style={{
+          backgroundColor: 'white'
+        }}>
+          {rows.map((row, i) => (
+            <tr key={i} style={{
+              backgroundColor: i % 2 === 0 ? 'white' : '#f9fafb'
+            }}>
+              {row.map((cell, j) => (
+                <td key={j} style={{
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  borderBottom: '1px solid #e5e7eb'
+                }}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 const options = {
   renderMark: {
-    [MARKS.BOLD]: (text) => React.createElement('strong', { className: 'font-semibold' }, text),
-    [MARKS.ITALIC]: (text) => React.createElement('em', { className: 'italic' }, text),
-    [MARKS.UNDERLINE]: (text) => React.createElement('u', { className: 'underline' }, text),
-    [MARKS.CODE]: (text) => React.createElement('code', { 
-      className: 'bg-gray-100 rounded px-1 py-0.5 text-sm font-mono' 
-    }, text),
+    [MARKS.BOLD]: (text) => <strong style={{ fontWeight: '600' }}>{text}</strong>,
+    [MARKS.ITALIC]: (text) => <em style={{ fontStyle: 'italic' }}>{text}</em>,
+    [MARKS.UNDERLINE]: (text) => <u style={{ textDecoration: 'underline' }}>{text}</u>,
+    [MARKS.CODE]: (text) => (
+      <code style={{
+        backgroundColor: '#f3f4f6',
+        borderRadius: '0.25rem',
+        padding: '0.125rem 0.25rem',
+        fontSize: '0.875rem',
+        fontFamily: 'monospace'
+      }}>{text}</code>
+    ),
   },
   renderNode: {
     [BLOCKS.PARAGRAPH]: (node, children) => {
@@ -127,45 +146,130 @@ const options = {
       const tableResult = parseMarkdownTable(textContent);
       
       if (tableResult.isTable && tableResult.tableData) {
-        return React.createElement('div', {}, [
-          React.createElement(MarkdownTable, {
-            key: 'table',
-            headers: tableResult.tableData.headers,
-            rows: tableResult.tableData.rows
-          }),
-          tableResult.remainingText && React.createElement('p', {
-            key: 'remaining',
-            className: 'mb-4 leading-relaxed text-gray-700'
-          }, tableResult.remainingText)
-        ]);
+        return (
+          <div>
+            <MarkdownTable 
+              headers={tableResult.tableData.headers} 
+              rows={tableResult.tableData.rows} 
+            />
+            {tableResult.remainingText && (
+              <p style={{
+                marginBottom: '1rem',
+                lineHeight: '1.625',
+                color: '#374151'
+              }}>
+                {tableResult.remainingText}
+              </p>
+            )}
+          </div>
+        );
       }
 
       // Default paragraph rendering
-      return React.createElement('p', { className: 'mb-4 leading-relaxed text-gray-700' }, children);
+      return <p style={{
+        marginBottom: '1rem',
+        lineHeight: '1.625',
+        color: '#374151'
+      }}>{children}</p>;
     },
-    [BLOCKS.HEADING_1]: (node, children) => 
-      React.createElement('h1', { className: 'text-4xl font-medium mb-6 text-gray-900' }, children),
-    [BLOCKS.HEADING_2]: (node, children) => 
-      React.createElement('h2', { className: 'text-3xl font-medium mb-4 mt-8 text-gray-900' }, children),
-    [BLOCKS.HEADING_3]: (node, children) => 
-      React.createElement('h3', { className: 'text-2xl font-medium mb-3 mt-6 text-gray-900' }, children),
-    [BLOCKS.HEADING_4]: (node, children) => 
-      React.createElement('h4', { className: 'text-xl font-medium mb-2 mt-4 text-gray-900' }, children),
-    [BLOCKS.HEADING_5]: (node, children) => 
-      React.createElement('h5', { className: 'text-lg font-medium mb-2 mt-4 text-gray-900' }, children),
-    [BLOCKS.HEADING_6]: (node, children) => 
-      React.createElement('h6', { className: 'text-base font-medium mb-2 mt-4 text-gray-900' }, children),
-    [BLOCKS.UL_LIST]: (node, children) => 
-      React.createElement('ul', { className: 'list-disc list-outside ml-6 mb-4 space-y-2 text-gray-700' }, children),
-    [BLOCKS.OL_LIST]: (node, children) => 
-      React.createElement('ol', { className: 'list-decimal list-outside ml-6 mb-4 space-y-2 text-gray-700' }, children),
-    [BLOCKS.LIST_ITEM]: (node, children) => 
-      React.createElement('li', {}, children),
-    [BLOCKS.QUOTE]: (node, children) => 
-      React.createElement('blockquote', { 
-        className: 'border-l-4 border-green-500 pl-4 py-2 mb-4 italic text-gray-600 bg-green-50' 
-      }, children),
-    [BLOCKS.HR]: () => React.createElement('hr', { className: 'border-gray-300 my-8' }),
+    [BLOCKS.HEADING_1]: (node, children) => (
+      <h1 style={{
+        fontSize: '2.25rem',
+        fontWeight: '500',
+        marginBottom: '1.5rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h1>
+    ),
+    [BLOCKS.HEADING_2]: (node, children) => (
+      <h2 style={{
+        fontSize: '1.875rem',
+        fontWeight: '500',
+        marginBottom: '1rem',
+        marginTop: '2rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h2>
+    ),
+    [BLOCKS.HEADING_3]: (node, children) => (
+      <h3 style={{
+        fontSize: '1.5rem',
+        fontWeight: '500',
+        marginBottom: '0.75rem',
+        marginTop: '1.5rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h3>
+    ),
+    [BLOCKS.HEADING_4]: (node, children) => (
+      <h4 style={{
+        fontSize: '1.25rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h4>
+    ),
+    [BLOCKS.HEADING_5]: (node, children) => (
+      <h5 style={{
+        fontSize: '1.125rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h5>
+    ),
+    [BLOCKS.HEADING_6]: (node, children) => (
+      <h6 style={{
+        fontSize: '1rem',
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        marginTop: '1rem',
+        color: '#111827',
+        fontFamily: 'serif'
+      }}>{children}</h6>
+    ),
+    [BLOCKS.UL_LIST]: (node, children) => (
+      <ul style={{
+        listStyleType: 'disc',
+        listStylePosition: 'outside',
+        marginLeft: '1.5rem',
+        marginBottom: '1rem',
+        color: '#374151'
+      }}>{children}</ul>
+    ),
+    [BLOCKS.OL_LIST]: (node, children) => (
+      <ol style={{
+        listStyleType: 'decimal',
+        listStylePosition: 'outside',
+        marginLeft: '1.5rem',
+        marginBottom: '1rem',
+        color: '#374151'
+      }}>{children}</ol>
+    ),
+    [BLOCKS.LIST_ITEM]: (node, children) => (
+      <li style={{ marginBottom: '0.5rem' }}>{children}</li>
+    ),
+    [BLOCKS.QUOTE]: (node, children) => (
+      <blockquote style={{
+        borderLeft: '4px solid #10b981',
+        paddingLeft: '1rem',
+        paddingTop: '0.5rem',
+        paddingBottom: '0.5rem',
+        marginBottom: '1rem',
+        fontStyle: 'italic',
+        color: '#4b5563',
+        backgroundColor: '#f0fdf4'
+      }}>
+        {children}
+      </blockquote>
+    ),
+    [BLOCKS.HR]: () => <hr style={{
+      borderColor: '#d1d5db',
+      margin: '2rem 0'
+    }} />,
     [BLOCKS.EMBEDDED_ASSET]: (node) => {
       const asset = node.data.target;
       if (asset?.fields?.file?.url) {
@@ -173,18 +277,32 @@ const options = {
           ? `https:${asset.fields.file.url}`
           : asset.fields.file.url;
         
-        return React.createElement('div', { className: 'my-8' }, [
-          React.createElement('img', {
-            key: 'img',
-            src: url,
-            alt: asset.fields.title || asset.fields.description || '',
-            className: 'rounded-lg shadow-md mx-auto max-w-full h-auto'
-          }),
-          asset.fields.description && React.createElement('p', {
-            key: 'caption',
-            className: 'text-sm text-gray-500 text-center mt-2'
-          }, asset.fields.description)
-        ]);
+        return (
+          <div style={{ margin: '2rem 0' }}>
+            <img
+              src={url}
+              alt={asset.fields.title || asset.fields.description || ''}
+              style={{
+                borderRadius: '0.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                margin: '0 auto',
+                display: 'block',
+                maxWidth: '100%',
+                height: 'auto'
+              }}
+            />
+            {asset.fields.description && (
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginTop: '0.5rem'
+              }}>
+                {asset.fields.description}
+              </p>
+            )}
+          </div>
+        );
       }
       return null;
     },
@@ -193,32 +311,49 @@ const options = {
       
       // Check if it's an internal link
       if (url.startsWith('/')) {
-        return React.createElement('a', {
-          href: url,
-          className: 'text-green-600 hover:text-green-700 underline'
-        }, children);
+        return (
+          <a href={url} style={{
+            color: '#059669',
+            textDecoration: 'underline'
+          }}>
+            {children}
+          </a>
+        );
       }
       
       // External link
-      return React.createElement('a', {
-        href: url,
-        target: '_blank',
-        rel: 'noopener noreferrer',
-        className: 'text-green-600 hover:text-green-700 underline'
-      }, children);
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#059669',
+            textDecoration: 'underline'
+          }}
+        >
+          {children}
+        </a>
+      );
     },
     [INLINES.ENTRY_HYPERLINK]: (node, children) => {
       // Handle links to other entries
-      return React.createElement('a', {
-        href: '#',
-        className: 'text-green-600 hover:text-green-700 underline'
-      }, children);
+      return (
+        <a href="#" style={{
+          color: '#059669',
+          textDecoration: 'underline'
+        }}>
+          {children}
+        </a>
+      );
     },
   },
 };
 
 export default function RichTextRenderer({ document }) {
-  return React.createElement('div', { className: 'prose max-w-none' }, 
-    documentToReactComponents(document, options)
-  );
+  return <div style={{
+    maxWidth: 'none',
+    lineHeight: '1.75',
+    color: '#374151'
+  }}>{documentToReactComponents(document, options)}</div>;
 }
