@@ -62,6 +62,27 @@ class ContentfulManagement {
   }
 
   /**
+   * Check if a Contentful entry is archived
+   * @param {Object} entry - Contentful entry object
+   * @returns {Boolean} True if entry is archived
+   */
+  isEntryArchived(entry) {
+    if (!entry || !entry.metadata) {
+      return false;
+    }
+
+    // Check if entry has archived tag in metadata
+    if (entry.metadata.tags && entry.metadata.tags.length > 0) {
+      return entry.metadata.tags.some(tag =>
+        (tag.sys && tag.sys.id === 'archived') ||
+        (typeof tag === 'string' && tag.toLowerCase() === 'archived')
+      );
+    }
+
+    return false;
+  }
+
+  /**
    * Get an entry with its current magentoId
    * @param {string} entryId - Contentful entry ID
    * @returns {Promise<Object|null>} Entry data or null if not found
@@ -71,10 +92,17 @@ class ContentfulManagement {
       const space = await this.client.getSpace(this.spaceId);
       const environment = await space.getEnvironment(this.environmentId);
       const entry = await environment.getEntry(entryId);
-      
+
+      // Check if entry is archived (treat as deleted)
+      if (this.isEntryArchived(entry)) {
+        console.log(`Entry ${entryId} is archived, treating as deleted`);
+        return null;
+      }
+
       return {
         sys: entry.sys,
-        fields: entry.fields
+        fields: entry.fields,
+        metadata: entry.metadata
       };
     } catch (error) {
       console.error(`Error fetching Contentful entry ${entryId}:`, error);
@@ -146,16 +174,23 @@ class ContentfulManagement {
       const space = await this.client.getSpace(this.spaceId);
       const environment = await space.getEnvironment(this.environmentId);
       const category = await environment.getEntry(categoryId);
-      
+
       // Verify it's a category content type
       if (category.sys.contentType.sys.id !== 'category') {
         console.warn(`Entry ${categoryId} is not a category (content type: ${category.sys.contentType.sys.id})`);
         return null;
       }
-      
+
+      // Check if category is archived (treat as deleted)
+      if (this.isEntryArchived(category)) {
+        console.log(`Category ${categoryId} is archived, treating as deleted`);
+        return null;
+      }
+
       return {
         sys: category.sys,
-        fields: category.fields
+        fields: category.fields,
+        metadata: category.metadata
       };
     } catch (error) {
       console.error(`Error fetching Contentful category ${categoryId}:`, error);

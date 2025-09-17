@@ -41,6 +41,25 @@ class FAQSyncManager:
             'errors': []
         }
 
+    def is_entry_archived(self, entry: Dict) -> bool:
+        """Check if a Contentful entry is archived"""
+        metadata = entry.get('metadata', {})
+        tags = metadata.get('tags', [])
+
+        if not tags:
+            return False
+
+        # Check if entry has archived tag
+        for tag in tags:
+            if isinstance(tag, dict):
+                tag_id = tag.get('sys', {}).get('id', '')
+                if tag_id == 'archived':
+                    return True
+            elif isinstance(tag, str) and tag.lower() == 'archived':
+                return True
+
+        return False
+
     def get_faq_entries(self, limit: int = 100, skip: int = 0) -> Dict:
         """Fetch FAQ entries from Contentful"""
         url = f'{self.contentful_base_url}/entries'
@@ -60,35 +79,50 @@ class FAQSyncManager:
             return None
 
     def get_all_faq_entries(self, max_entries: Optional[int] = None) -> List[Dict]:
-        """Get all FAQ entries with pagination"""
+        """Get all FAQ entries with pagination, excluding archived ones"""
         all_entries = []
+        archived_count = 0
         skip = 0
         limit = 100
-        
+
         print("🔍 Fetching FAQ entries from Contentful...")
-        
+
         while True:
             data = self.get_faq_entries(limit, skip)
             if not data or not data.get('items'):
                 break
-            
+
             entries = data['items']
-            all_entries.extend(entries)
-            
-            print(f"   Retrieved {len(entries)} FAQs (total: {len(all_entries)})")
-            
+
+            # Filter out archived entries
+            active_entries = []
+            for entry in entries:
+                if self.is_entry_archived(entry):
+                    archived_count += 1
+                    faq_title = entry.get('fields', {}).get('title', 'Untitled')
+                    print(f"   🗄️  Skipping archived FAQ: {faq_title}")
+                else:
+                    active_entries.append(entry)
+
+            all_entries.extend(active_entries)
+
+            print(f"   Retrieved {len(active_entries)} active FAQs (total: {len(all_entries)})")
+
             # Check if we've reached max entries or end of results
             if max_entries and len(all_entries) >= max_entries:
                 all_entries = all_entries[:max_entries]
                 break
-                
+
             if len(entries) < limit:
                 break
-            
+
             skip += limit
             time.sleep(0.5)  # Be nice to Contentful API
-        
-        print(f"✅ Total FAQ entries found: {len(all_entries)}")
+
+        if archived_count > 0:
+            print(f"⚠️  Filtered out {archived_count} archived FAQs")
+
+        print(f"✅ Total active FAQ entries found: {len(all_entries)}")
         return all_entries
 
     def submit_faq_to_magento(self, entry_id: str, retry_count: int = 0) -> Dict:

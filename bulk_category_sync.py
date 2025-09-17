@@ -52,53 +52,85 @@ class CategoryMagentoSync:
         self.logger.info(f"Initialized CategoryMagentoSync with:")
         self.logger.info(f"  - Contentful Space: {self.contentful_space_id}")
         self.logger.info(f"  - Express Server: {self.express_server_url}")
-    
+
+    def is_entry_archived(self, entry: Dict[str, Any]) -> bool:
+        """Check if a Contentful entry is archived"""
+        metadata = entry.get('metadata', {})
+        tags = metadata.get('tags', [])
+
+        if not tags:
+            return False
+
+        # Check if entry has archived tag
+        for tag in tags:
+            if isinstance(tag, dict):
+                tag_id = tag.get('sys', {}).get('id', '')
+                if tag_id == 'archived':
+                    return True
+            elif isinstance(tag, str) and tag.lower() == 'archived':
+                return True
+
+        return False
+
     def fetch_all_categories(self) -> List[Dict[str, Any]]:
-        """Fetch all category entries from Contentful"""
+        """Fetch all category entries from Contentful, excluding archived ones"""
         self.logger.info("🔍 Fetching categories from Contentful...")
-        
+
         url = f"https://cdn.contentful.com/spaces/{self.contentful_space_id}/environments/{self.contentful_environment}/entries"
         headers = {
             'Authorization': f'Bearer {self.contentful_access_token}',
             'Content-Type': 'application/json'
         }
-        
+
         all_categories = []
+        archived_count = 0
         skip = 0
         limit = 100  # Contentful's max limit per request
-        
+
         while True:
             params = {
                 'content_type': 'category',  # Only fetch categories
                 'limit': limit,
                 'skip': skip,
                 'include': 1,  # Include linked entries
+                'select': 'sys.id,fields.title,fields.renderPage,fields.parent,metadata.tags',  # Include metadata for archived check
                 'order': 'fields.title'  # Sort by title for consistent processing
             }
-            
+
             try:
                 response = requests.get(url, headers=headers, params=params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 entries = data.get('items', [])
-                all_categories.extend(entries)
-                
+
+                # Filter out archived categories
+                for entry in entries:
+                    if self.is_entry_archived(entry):
+                        archived_count += 1
+                        category_title = entry.get('fields', {}).get('title', 'Untitled')
+                        self.logger.info(f"   🗄️  Skipping archived category: {category_title}")
+                    else:
+                        all_categories.append(entry)
+
                 # Log progress
-                self.logger.info(f"   Fetched {len(entries)} categories (total: {len(all_categories)})")
-                
+                self.logger.info(f"   Fetched {len(entries)} categories, {len(all_categories)} active total")
+
                 # Check if we have more entries to fetch
                 if len(entries) < limit:
                     break
-                
+
                 skip += limit
                 time.sleep(0.1)  # Small delay to be nice to Contentful API
-                
+
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"❌ Error fetching Contentful categories: {e}")
                 sys.exit(1)
-        
-        self.logger.info(f"✅ Found {len(all_categories)} total categories in Contentful")
+
+        if archived_count > 0:
+            self.logger.info(f"⚠️  Filtered out {archived_count} archived categories")
+
+        self.logger.info(f"✅ Found {len(all_categories)} active categories in Contentful")
         return all_categories
     
     def filter_renderable_categories(self, categories: List[Dict[str, Any]], ignore_render_page: bool = False) -> List[Dict[str, Any]]:

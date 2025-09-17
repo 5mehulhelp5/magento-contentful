@@ -80,7 +80,7 @@ const ArticlePage = ({ data }) => {
 
           {/* Article Content */}
           <article key="content" className="article-content-section">
-            <div className="article-content">
+            <div className="article-content" style={{ fontSize: "19px" }}>
               {body && <RichTextRenderer document={body} />}
             </div>
           </article>

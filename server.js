@@ -139,10 +139,34 @@ async function renderPageToStatic(PageComponent, props = {}, options = {}) {
   return { html: fullHtml };
 }
 
+// Helper function to check if an entry is archived
+function isEntryArchived(entry) {
+  if (!entry || !entry.metadata) {
+    return false;
+  }
+
+  // Check if entry has archived tag in metadata
+  if (entry.metadata.tags && entry.metadata.tags.length > 0) {
+    return entry.metadata.tags.some(tag =>
+      tag.sys && tag.sys.id === 'archived' ||
+      (typeof tag === 'string' && tag.toLowerCase() === 'archived')
+    );
+  }
+
+  return false;
+}
+
 // Get content from Contentful
 async function getContentfulEntry(entryId) {
   try {
     const entry = await contentfulClient.getEntry(entryId);
+
+    // Check if entry is archived (treat as deleted)
+    if (isEntryArchived(entry)) {
+      console.log(`Entry ${entryId} is archived, treating as deleted`);
+      return null;
+    }
+
     return entry;
   } catch (error) {
     console.error("Error fetching Contentful entry:", error);
@@ -154,6 +178,13 @@ async function getContentfulEntry(entryId) {
 async function getContentfulCategory(categoryId) {
   try {
     const category = await contentfulClient.getEntry(categoryId);
+
+    // Check if category is archived (treat as deleted)
+    if (isEntryArchived(category)) {
+      console.log(`Category ${categoryId} is archived, treating as deleted`);
+      return null;
+    }
+
     return category;
   } catch (error) {
     console.error("Error fetching Contentful category:", error);
@@ -170,10 +201,18 @@ async function getChildCategories(parentCategoryId) {
       limit: 1000, // Get all child categories
     });
 
+    // Filter out archived categories
+    const activeCategories = childCategories.items.filter(category => !isEntryArchived(category));
+
+    const archivedCount = childCategories.items.length - activeCategories.length;
+    if (archivedCount > 0) {
+      console.log(`Filtered out ${archivedCount} archived child categories for ${parentCategoryId}`);
+    }
+
     console.log(
-      `Found ${childCategories.items.length} child categories for ${parentCategoryId}`
+      `Found ${activeCategories.length} active child categories for ${parentCategoryId}`
     );
-    return childCategories.items;
+    return activeCategories;
   } catch (error) {
     console.error("Error fetching child categories:", error);
     return [];
@@ -187,8 +226,17 @@ async function getAllCategories() {
       content_type: "category",
       limit: 1000, // Get all categories
     });
-    console.log(`Found ${allCategories.items.length} total categories`);
-    return allCategories.items;
+
+    // Filter out archived categories
+    const activeCategories = allCategories.items.filter(category => !isEntryArchived(category));
+
+    const archivedCount = allCategories.items.length - activeCategories.length;
+    if (archivedCount > 0) {
+      console.log(`Filtered out ${archivedCount} archived categories from navigation`);
+    }
+
+    console.log(`Found ${activeCategories.length} active categories for navigation`);
+    return activeCategories;
   } catch (error) {
     console.error("Error fetching all categories:", error);
     return [];
@@ -205,14 +253,22 @@ async function getTopLevelCategoriesWithArticles() {
       limit: 10,
     });
 
-    console.log(`Found ${topLevelCategories.items.length} top-level categories`);
+    // Filter out archived categories
+    const activeTopLevelCategories = topLevelCategories.items.filter(category => !isEntryArchived(category));
+
+    const archivedCount = topLevelCategories.items.length - activeTopLevelCategories.length;
+    if (archivedCount > 0) {
+      console.log(`Filtered out ${archivedCount} archived top-level categories from homepage`);
+    }
+
+    console.log(`Found ${activeTopLevelCategories.length} active top-level categories`);
 
     const categoriesWithArticles = [];
 
-    for (const category of topLevelCategories.items) {
+    for (const category of activeTopLevelCategories) {
       // Get 3 most recent articles for this category
       const { items: articles } = await getCategoryArticles(category.sys.id, 3, 0);
-      
+
       categoriesWithArticles.push({
         category,
         articles: articles.slice(0, 3), // Ensure max 3 articles
@@ -257,7 +313,7 @@ async function getCategoryArticles(categoryId, limit = 100, skip = 0) {
         );
 
         childArticles.items.forEach((article) => {
-          if (!existingIds.has(article.sys.id)) {
+          if (!existingIds.has(article.sys.id) && !isEntryArchived(article)) {
             allArticles.push(article);
             existingIds.add(article.sys.id);
           }
@@ -340,15 +396,26 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
       ].join(","),
     });
 
-    // Combine and deduplicate articles by ID
-    const allArticles = [...entries.items];
-    const existingIds = new Set(entries.items.map((item) => item.sys.id));
+    // Filter out archived articles and combine
+    const activeMainArticles = entries.items.filter(article => !isEntryArchived(article));
+    const activeSecondaryArticles = secondaryEntries.items.filter(article => !isEntryArchived(article));
 
-    secondaryEntries.items.forEach((item) => {
+    // Combine and deduplicate articles by ID
+    const allArticles = [...activeMainArticles];
+    const existingIds = new Set(activeMainArticles.map((item) => item.sys.id));
+
+    activeSecondaryArticles.forEach((item) => {
       if (!existingIds.has(item.sys.id)) {
         allArticles.push(item);
       }
     });
+
+    // Log filtered articles
+    const filteredMainCount = entries.items.length - activeMainArticles.length;
+    const filteredSecondaryCount = secondaryEntries.items.length - activeSecondaryArticles.length;
+    if (filteredMainCount > 0 || filteredSecondaryCount > 0) {
+      console.log(`Filtered out ${filteredMainCount + filteredSecondaryCount} archived articles for category ${categoryId}`);
+    }
 
     // Sort by published date (most recent first)
     allArticles.sort((a, b) => {
@@ -359,7 +426,7 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
 
     return {
       items: allArticles,
-      total: entries.total + secondaryEntries.total,
+      total: allArticles.length, // Use actual count after filtering
       limit,
       skip,
     };

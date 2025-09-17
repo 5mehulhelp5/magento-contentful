@@ -30,52 +30,82 @@ class ContentfulMagentoSync:
         # Validate configuration
         if not all([self.contentful_space_id, self.contentful_access_token]):
             raise ValueError("Missing required Contentful environment variables")
-    
+
+    def is_entry_archived(self, entry: Dict[str, Any]) -> bool:
+        """Check if a Contentful entry is archived"""
+        metadata = entry.get('metadata', {})
+        tags = metadata.get('tags', [])
+
+        if not tags:
+            return False
+
+        # Check if entry has archived tag
+        for tag in tags:
+            if isinstance(tag, dict):
+                tag_id = tag.get('sys', {}).get('id', '')
+                if tag_id == 'archived':
+                    return True
+            elif isinstance(tag, str) and tag.lower() == 'archived':
+                return True
+
+        return False
+
     def fetch_contentful_entries(self) -> List[Dict[str, Any]]:
-        """Fetch all article entries from Contentful"""
+        """Fetch all article entries from Contentful, excluding archived ones"""
         print("🔍 Fetching entries from Contentful...")
-        
+
         url = f"https://cdn.contentful.com/spaces/{self.contentful_space_id}/environments/{self.contentful_environment}/entries"
         headers = {
             'Authorization': f'Bearer {self.contentful_access_token}',
             'Content-Type': 'application/json'
         }
-        
+
         all_entries = []
+        archived_count = 0
         skip = 0
         limit = 100  # Contentful's max limit per request
-        
+
         while True:
             params = {
                 'content_type': 'article',  # Only fetch articles
                 'limit': limit,
                 'skip': skip,
-                'select': 'sys.id,fields.title'  # Only get what we need
+                'select': 'sys.id,fields.title,metadata.tags'  # Include metadata for archived check
             }
-            
+
             try:
                 response = requests.get(url, headers=headers, params=params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 items = data.get('items', [])
                 if not items:
                     break  # No more entries
-                
-                all_entries.extend(items)
+
+                # Filter out archived entries
+                for item in items:
+                    if self.is_entry_archived(item):
+                        archived_count += 1
+                        print(f"   🗄️  Skipping archived entry: {item.get('fields', {}).get('title', 'Untitled')}")
+                    else:
+                        all_entries.append(item)
+
                 skip += limit
-                
-                print(f"   📄 Fetched {len(all_entries)} entries so far...")
-                
+
+                print(f"   📄 Fetched {len(all_entries)} active entries so far...")
+
                 # Check if we've got all entries
                 if len(items) < limit:
                     break
-                    
+
             except requests.exceptions.RequestException as e:
                 print(f"❌ Error fetching Contentful entries: {e}")
                 sys.exit(1)
-        
-        print(f"✅ Found {len(all_entries)} article entries in Contentful")
+
+        if archived_count > 0:
+            print(f"⚠️  Filtered out {archived_count} archived articles")
+
+        print(f"✅ Found {len(all_entries)} active article entries in Contentful")
         return all_entries
     
     def sync_entry_to_magento(self, entry_id: str, title: str) -> Dict[str, Any]:
