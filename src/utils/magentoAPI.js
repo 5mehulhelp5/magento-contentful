@@ -272,9 +272,19 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
     contentfulEntry.fields.slug ||
     contentfulEntry.sys.id.toLowerCase();
 
+  // Check content type and use appropriate URL pattern
+  const contentType = contentfulEntry.sys.contentType.sys.id;
+  let basePath;
+
+  if (contentType === "recipe") {
+    basePath = "garden-guide/harvest-recipies";
+  } else {
+    basePath = "garden-guide/" + slugify(categoryTitle);
+  }
+
   const frontendUrl = existingFrontendUrl
     ? existingFrontendUrl
-    : "garden-guide/" + slugify(categoryTitle) + "/" + articleSlug;
+    : basePath + "/" + articleSlug;
 
   console.log("NEW FRONTEND URL");
   console.log(frontendUrl);

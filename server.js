@@ -690,6 +690,134 @@ app.get("/preview/article/:entryId", async (req, res) => {
   }
 });
 
+// Recipe Routes
+app.get("/render/recipe/:entryId", async (req, res) => {
+  try {
+    const { entryId } = req.params;
+
+    // Fetch content from Contentful
+    const contentfulEntry = await getContentfulEntry(entryId);
+
+    if (!contentfulEntry) {
+      return res.status(404).json({ error: "Content not found" });
+    }
+
+    // Check if this is a recipe content type
+    if (contentfulEntry.sys.contentType.sys.id !== "recipe") {
+      return res.status(400).json({ error: "Entry is not a recipe" });
+    }
+
+    const PageComponent = require("./src/pages/RecipePage.jsx").default;
+    const { html } = await renderPageToStatic(PageComponent, {
+      data: contentfulEntry.fields,
+      title: contentfulEntry.fields.title,
+    });
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/${entryId}.html`, html);
+
+    res.json({
+      success: true,
+      message: `Recipe rendered and saved to ./output/${entryId}.html`,
+      entryId: entryId,
+      title: contentfulEntry.fields.title,
+    });
+  } catch (error) {
+    console.error("Error rendering recipe:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/render-and-submit-recipe/:entryId", async (req, res) => {
+  try {
+    const { entryId } = req.params;
+
+    // Fetch content from Contentful
+    const contentfulEntry = await getContentfulEntry(entryId);
+
+    if (!contentfulEntry) {
+      return res.status(404).json({ error: "Content not found" });
+    }
+
+    // Check if this is a recipe content type
+    if (contentfulEntry.sys.contentType.sys.id !== "recipe") {
+      return res.status(400).json({ error: "Entry is not a recipe" });
+    }
+
+    const PageComponent = require("./src/pages/RecipePage.jsx").default;
+    const { html } = await renderPageToStatic(
+      PageComponent,
+      {
+        data: contentfulEntry.fields,
+        title: contentfulEntry.fields.title,
+      },
+      { inlineCSS: true }
+    );
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/${entryId}.html`, html);
+
+    // Submit to Magento
+    const magentoResult = await submitToMagento(contentfulEntry, html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `Recipe rendered and ${magentoResult.action} in Magento`,
+        entryId: entryId,
+        title: contentfulEntry.fields.title,
+        magento: {
+          action: magentoResult.action,
+          identifier: magentoResult.identifier,
+          status: magentoResult.status,
+        },
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Recipe rendered but failed to submit to Magento",
+        entryId: entryId,
+        title: contentfulEntry.fields.title,
+        error: magentoResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering and submitting recipe:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/preview/recipe/:entryId", async (req, res) => {
+  try {
+    const { entryId } = req.params;
+
+    // Fetch content from Contentful
+    const contentfulEntry = await getContentfulEntry(entryId);
+
+    if (!contentfulEntry) {
+      return res.status(404).send("<h1>Content not found</h1>");
+    }
+
+    // Check if this is a recipe content type
+    if (contentfulEntry.sys.contentType.sys.id !== "recipe") {
+      return res.status(400).send("<h1>Entry is not a recipe</h1>");
+    }
+
+    const PageComponent = require("./src/pages/RecipePage.jsx").default;
+    const { html } = await renderPageToStatic(PageComponent, {
+      data: contentfulEntry.fields,
+      title: contentfulEntry.fields.title,
+    });
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error previewing recipe:", error);
+    res.status(500).send("<h1>Error loading content</h1>");
+  }
+});
+
 // Preview route for category list pages
 app.get("/preview/category/:categoryId", async (req, res) => {
   try {
@@ -1001,6 +1129,9 @@ app.get("/", (req, res) => {
           <li>/preview/article/[entryId] - Preview an article</li>
           <li>/render/article/[entryId] - Render and save article to output folder</li>
           <li><strong>/render-and-submit/[entryId] (POST)</strong> - Render article and submit to Magento</li>
+          <li>/preview/recipe/[entryId] - Preview a recipe</li>
+          <li>/render/recipe/[entryId] - Render and save recipe to output folder</li>
+          <li><strong>/render-and-submit-recipe/[entryId] (POST)</strong> - Render recipe and submit to Magento</li>
           <li>/preview/category/[categoryId] - Preview a category list page</li>
           <li><strong>/render-and-submit-category/[categoryId] (POST)</strong> - Render category page and submit to Magento</li>
         </ul>
@@ -1008,9 +1139,12 @@ app.get("/", (req, res) => {
         <h2>Example Usage:</h2>
         <p>To preview an article, use: <code>/preview/article/YOUR_ENTRY_ID</code></p>
         <p>To render and save an article, use: <code>/render/article/YOUR_ENTRY_ID</code></p>
+        <p>To preview a recipe, use: <code>/preview/recipe/YOUR_RECIPE_ID</code></p>
+        <p>To render and save a recipe, use: <code>/render/recipe/YOUR_RECIPE_ID</code></p>
         <p>To preview a category page, use: <code>/preview/category/YOUR_CATEGORY_ID</code></p>
-        <p>To render and submit to Magento, use: <code>POST /render-and-submit-category/YOUR_CATEGORY_ID</code></p>
         <p>To render and submit to Magento, use: <code>POST /render-and-submit/YOUR_ENTRY_ID</code></p>
+        <p>To render and submit recipe to Magento, use: <code>POST /render-and-submit-recipe/YOUR_RECIPE_ID</code></p>
+        <p>To render and submit category to Magento, use: <code>POST /render-and-submit-category/YOUR_CATEGORY_ID</code></p>
         
         <h2>Configuration:</h2>
         <ul>
