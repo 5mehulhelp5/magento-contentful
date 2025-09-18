@@ -88,9 +88,10 @@ async function getCmsPageByIdentifier(identifier) {
  * @param {boolean} pageData.active - Whether page is active
  * @param {string} method - HTTP method (POST for create, PUT for update)
  * @param {string} pageId - Page ID (required for PUT requests)
+ * @param {string} contentType - Content type ("recipe", "article", "category", "faq", etc.)
  * @returns {Promise<Object>} API response
  */
-async function createOrUpdateCmsPage(pageData, method = "POST", pageId = null) {
+async function createOrUpdateCmsPage(pageData, method = "POST", pageId = null, contentType = "article") {
   const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
   const endpoint = pageId
     ? `${baseUrl}/rest/default/V1/cmsPage/${pageId}`
@@ -104,7 +105,7 @@ async function createOrUpdateCmsPage(pageData, method = "POST", pageId = null) {
       meta_title: pageData.meta_title || pageData.title,
       meta_keywords: pageData.meta_keywords || "",
       meta_description: pageData.meta_description || "",
-      content_heading: pageData.content_heading || "",
+      content_heading: pageData.meta_title || pageData.title,
       content: pageData.content || "",
       creation_time:
         pageData.creation_time ||
@@ -113,6 +114,7 @@ async function createOrUpdateCmsPage(pageData, method = "POST", pageId = null) {
       sort_order: pageData.sort_order || "0",
       custom_theme: pageData.custom_theme || "",
       active: pageData.active !== undefined ? (pageData.active ? 1 : 0) : 1,
+      type: contentType,
     },
   };
 
@@ -328,7 +330,7 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
 
     if (existingPage) {
       // Page exists, update it using the ID
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId);
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId, contentType);
       action = "updated";
       finalMagentoId = existingMagentoId;
     } else {
@@ -336,7 +338,7 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       console.log(
         `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
       );
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, contentType);
       action = "recreated";
       finalMagentoId = result.success ? result.data.id : null;
     }
@@ -352,13 +354,13 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       console.log(
         `Found existing page with identifier ${frontendUrl}, updating and saving ID`
       );
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, contentType);
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
       // Create new page
       console.log(`Creating new Magento page with identifier: ${frontendUrl}`);
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, contentType);
       action = "created";
       finalMagentoId = result.success ? result.data.id : null;
     }
@@ -578,7 +580,8 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         result = await createOrUpdateCmsPage(
           pageData,
           "PUT",
-          existingMagentoId
+          existingMagentoId,
+          "category"
         );
         action = "updated";
         finalMagentoId = existingMagentoId;
@@ -588,7 +591,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
           `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
         );
         pageData.identifier = pageData.identifier;
-        result = await createOrUpdateCmsPage(pageData, "POST");
+        result = await createOrUpdateCmsPage(pageData, "POST", null, "category");
         action = "recreated";
         finalMagentoId = result.success ? result.data.id : null;
       }
@@ -604,7 +607,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         console.log(
           `Found existing page with identifier ${pageData.identifier}, updating and saving ID`
         );
-        result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+        result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "category");
         action = "updated";
         finalMagentoId = existingPage.id.toString();
 
@@ -622,7 +625,7 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         // No existing page found, create a new one
         console.log(`Creating new Magento page for category "${title}"`);
         pageData.identifier = pageData.identifier;
-        result = await createOrUpdateCmsPage(pageData, "POST");
+        result = await createOrUpdateCmsPage(pageData, "POST", null, "category");
         action = "created";
         finalMagentoId = result.success ? result.data.id : null;
 
@@ -791,14 +794,14 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
     const existingPage = await getCmsPageById(existingMagentoId);
 
     if (existingPage) {
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId);
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId, "faq");
       action = "updated";
       finalMagentoId = existingMagentoId;
     } else {
       console.log(
         `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
       );
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, "faq");
       action = "recreated";
       finalMagentoId = result.success ? result.data.id : null;
     }
@@ -813,12 +816,12 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
       console.log(
         `Found existing page with identifier ${frontendUrl}, updating and saving ID`
       );
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "faq");
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
       console.log(`Creating new Magento page with identifier: ${frontendUrl}`);
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, "faq");
       action = "created";
       finalMagentoId = result.success ? result.data.id : null;
     }
@@ -949,13 +952,13 @@ async function submitHomepageToMagento(renderedHtml) {
   if (existingPage) {
     // Page exists, update it
     console.log(`Updating existing homepage with ID: ${existingPage.id}`);
-    result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+    result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "homepage");
     action = "updated";
     finalMagentoId = existingPage.id;
   } else {
     // Create new page
     console.log("Creating new homepage in Magento");
-    result = await createOrUpdateCmsPage(pageData, "POST");
+    result = await createOrUpdateCmsPage(pageData, "POST", null, "homepage");
     action = "created";
     finalMagentoId = result.success ? result.data.id : null;
   }
@@ -1046,7 +1049,8 @@ async function submitRecipeCategoryToMagento(categoryData, renderedHtml) {
         result = await createOrUpdateCmsPage(
           pageData,
           "PUT",
-          existingMagentoId
+          existingMagentoId,
+          "recipe"
         );
         action = "updated";
         finalMagentoId = existingMagentoId;
@@ -1055,14 +1059,14 @@ async function submitRecipeCategoryToMagento(categoryData, renderedHtml) {
         console.log(
           `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
         );
-        result = await createOrUpdateCmsPage(pageData, "POST");
+        result = await createOrUpdateCmsPage(pageData, "POST", null, "recipe");
         action = "created";
         finalMagentoId = result.data?.id;
       }
     } else {
       // No existing Magento ID, create a new page
       console.log(`Creating new Magento page for recipe category: ${title}`);
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, "recipe");
       action = "created";
       finalMagentoId = result.data?.id;
     }
@@ -1097,7 +1101,10 @@ async function submitRecipeCategoryToMagento(categoryData, renderedHtml) {
         identifier: pageData.identifier,
       };
     } else {
-      console.error(`❌ Failed to ${action} recipe category in Magento:`, result.error);
+      console.error(
+        `❌ Failed to ${action} recipe category in Magento:`,
+        result.error
+      );
       return {
         success: false,
         error: result.error,
@@ -1106,7 +1113,10 @@ async function submitRecipeCategoryToMagento(categoryData, renderedHtml) {
       };
     }
   } catch (error) {
-    console.error(`❌ Error during recipe category ${action || "submission"}:`, error);
+    console.error(
+      `❌ Error during recipe category ${action || "submission"}:`,
+      error
+    );
     return {
       success: false,
       error: error.message,
@@ -1127,7 +1137,8 @@ async function submitHarvestRecipesToMagento(renderedHtml) {
     identifier: "garden-guide/harvest-recipes",
     content: magentoContent,
     meta_title: "Harvest Recipes - Garden to Table Recipes",
-    meta_description: "Discover delicious recipes using fresh ingredients from your garden. From harvest to table, make the most of your homegrown produce.",
+    meta_description:
+      "Discover delicious recipes using fresh ingredients from your garden. From harvest to table, make the most of your homegrown produce.",
     active: 1,
     page_layout: "cms-full-width",
     sort_order: "50", // Higher priority than category pages
@@ -1144,20 +1155,24 @@ async function submitHarvestRecipesToMagento(renderedHtml) {
 
     if (existingPage) {
       // Page exists, update it
-      console.log(`Updating existing Harvest Recipes page with ID: ${existingPage.id}`);
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+      console.log(
+        `Updating existing Harvest Recipes page with ID: ${existingPage.id}`
+      );
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "recipe");
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
       // Page doesn't exist, create it
       console.log("Creating new Harvest Recipes page");
-      result = await createOrUpdateCmsPage(pageData, "POST");
+      result = await createOrUpdateCmsPage(pageData, "POST", null, "recipe");
       action = "created";
       finalMagentoId = result.data?.id;
     }
 
     if (result.success && finalMagentoId) {
-      console.log(`✅ Successfully ${action} Harvest Recipes page in Magento with ID: ${finalMagentoId}`);
+      console.log(
+        `✅ Successfully ${action} Harvest Recipes page in Magento with ID: ${finalMagentoId}`
+      );
       return {
         success: true,
         action: action,
@@ -1167,7 +1182,10 @@ async function submitHarvestRecipesToMagento(renderedHtml) {
         identifier: pageData.identifier,
       };
     } else {
-      console.error(`❌ Failed to ${action} Harvest Recipes page in Magento:`, result.error);
+      console.error(
+        `❌ Failed to ${action} Harvest Recipes page in Magento:`,
+        result.error
+      );
       return {
         success: false,
         error: result.error,
