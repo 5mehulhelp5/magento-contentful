@@ -436,6 +436,201 @@ async function getDirectCategoryArticles(categoryId, limit = 100, skip = 0) {
   }
 }
 
+// Get recipes by category from Contentful (supports hierarchical aggregation)
+async function getCategoryRecipes(categoryId, limit = 100, skip = 0) {
+  try {
+    console.log(`Fetching recipes for category: ${categoryId}`);
+    // First, get recipes directly assigned to this category
+    const directRecipes = await getDirectCategoryRecipes(
+      categoryId,
+      limit,
+      skip
+    );
+    const childCategories = await getChildCategories(categoryId);
+    if (childCategories.length > 0) {
+      console.log(
+        `Aggregating recipes from ${childCategories.length} child categories`
+      );
+      // Get recipes from all child categories
+      const allRecipes = [];
+      const existingIds = new Set();
+      for (const childCategory of childCategories) {
+        const childRecipes = await getDirectCategoryRecipes(
+          childCategory.sys.id,
+          1000,
+          0
+        );
+        childRecipes.items.forEach((recipe) => {
+          if (!existingIds.has(recipe.sys.id) && !isEntryArchived(recipe)) {
+            allRecipes.push(recipe);
+            existingIds.add(recipe.sys.id);
+          }
+        });
+      }
+      // Sort by published date (most recent first)
+      allRecipes.sort((a, b) => {
+        const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+        const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+        return dateB - dateA;
+      });
+      console.log(`Found ${allRecipes.length} recipes from child categories`);
+      return {
+        items: [...directRecipes.items, ...allRecipes],
+        total: allRecipes.length,
+        limit,
+        skip,
+      };
+    }
+    return directRecipes;
+  } catch (error) {
+    console.error("Error fetching category recipes:", error);
+    return { items: [], total: 0, limit, skip };
+  }
+}
+
+// Get recipes directly assigned to a specific category (helper function)
+async function getDirectCategoryRecipes(categoryId, limit = 100, skip = 0) {
+  try {
+    // Query recipes where mainCategory includes the target category
+    const entries = await contentfulClient.getEntries({
+      content_type: "recipe",
+      limit: limit,
+      skip: skip,
+      "sys.id[ne]": categoryId, // Exclude the category entry itself
+      "fields.mainCategory.sys.id": categoryId,
+      include: 2, // Include linked entries (categories, assets)
+      select: [
+        "sys.id",
+        "sys.createdAt",
+        "sys.updatedAt",
+        "fields.title",
+        "fields.body",
+        "fields.featuredImage",
+        "fields.imageAlt",
+        "fields.listImage",
+        "fields.listImageStandard",
+        "fields.listImageAlt",
+        "fields.publishedAt",
+        "fields.metaDescription",
+        "fields.slug",
+        "fields.newSlug",
+        "fields.frontendUrl",
+        "fields.instructions",
+      ].join(","),
+    });
+
+    // Also fetch recipes that have this category as a secondary category
+    const secondaryEntries = await contentfulClient.getEntries({
+      content_type: "recipe",
+      limit: limit,
+      skip: skip,
+      "sys.id[ne]": categoryId,
+      "fields.secondaryCategories.sys.id": categoryId,
+      include: 2,
+      select: [
+        "sys.id",
+        "sys.createdAt",
+        "sys.updatedAt",
+        "fields.title",
+        "fields.body",
+        "fields.featuredImage",
+        "fields.imageAlt",
+        "fields.listImage",
+        "fields.listImageStandard",
+        "fields.listImageAlt",
+        "fields.publishedAt",
+        "fields.metaDescription",
+        "fields.slug",
+        "fields.newSlug",
+        "fields.frontendUrl",
+        "fields.instructions",
+      ].join(","),
+    });
+
+    // Combine and deduplicate recipes
+    const allRecipes = new Map();
+    [...entries.items, ...secondaryEntries.items].forEach((recipe) => {
+      if (!isEntryArchived(recipe)) {
+        allRecipes.set(recipe.sys.id, recipe);
+      }
+    });
+
+    const recipeArray = Array.from(allRecipes.values());
+
+    // Sort by published date (most recent first)
+    recipeArray.sort((a, b) => {
+      const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+      const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+      return dateB - dateA;
+    });
+
+    console.log(`Found ${recipeArray.length} direct recipes for category ${categoryId}`);
+    return {
+      items: recipeArray,
+      total: recipeArray.length,
+      limit,
+      skip,
+    };
+  } catch (error) {
+    console.error("Error fetching direct category recipes:", error);
+    return { items: [], total: 0, limit, skip };
+  }
+}
+
+// Get all recipes for "Harvest Recipies" category (simplified approach)
+async function getAllRecipes(limit = 100, skip = 0) {
+  try {
+    console.log(`Fetching all recipes (limit: ${limit}, skip: ${skip})`);
+
+    // Query all published recipes
+    const entries = await contentfulClient.getEntries({
+      content_type: "recipe",
+      limit: limit,
+      skip: skip,
+      include: 2, // Include linked entries (assets)
+      select: [
+        "sys.id",
+        "sys.createdAt",
+        "sys.updatedAt",
+        "fields.title",
+        "fields.body",
+        "fields.featuredImage",
+        "fields.imageAlt",
+        "fields.listImage",
+        "fields.listImageStandard",
+        "fields.listImageAlt",
+        "fields.publishedAt",
+        "fields.metaDescription",
+        "fields.slug",
+        "fields.newSlug",
+        "fields.frontendUrl",
+        "fields.instructions",
+      ].join(","),
+    });
+
+    // Filter out archived recipes
+    const activeRecipes = entries.items.filter(recipe => !isEntryArchived(recipe));
+
+    // Sort by published date (most recent first)
+    activeRecipes.sort((a, b) => {
+      const dateA = new Date(a.fields.publishedAt || a.sys.createdAt);
+      const dateB = new Date(b.fields.publishedAt || b.sys.createdAt);
+      return dateB - dateA;
+    });
+
+    console.log(`Found ${activeRecipes.length} published recipes`);
+    return {
+      items: activeRecipes,
+      total: activeRecipes.length,
+      limit,
+      skip,
+    };
+  } catch (error) {
+    console.error("Error fetching all recipes:", error);
+    return { items: [], total: 0, limit, skip };
+  }
+}
+
 // Search for a Magento CMS page by identifier
 async function findMagentoPageByIdentifier(identifier) {
   const request = {
@@ -1309,6 +1504,122 @@ app.get("/debug-category-content/:categoryId", async (req, res) => {
     });
   } catch (error) {
     console.error("Error debugging category content:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Recipe Category Endpoints
+// Preview route for "Harvest Recipies" page (simplified single category)
+app.get("/preview/harvest-recipes", async (req, res) => {
+  try {
+    // Fetch all recipes
+    const { items: recipes, total } = await getAllRecipes();
+    // Fetch all categories for the sidebar
+    const allCategories = await getAllCategories();
+    console.log(`Preview harvest recipes: found ${recipes.length} recipes and ${allCategories.length} categories for sidebar`);
+
+    const RecipeCategoryPage =
+      require("./src/pages/RecipeCategoryPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      RecipeCategoryPage,
+      {
+        recipes,
+        totalCount: total,
+        allCategories,
+        title: "Harvest Recipes",
+      },
+      { inlineCSS: true, inlineJS: true }
+    );
+    res.send(html);
+  } catch (error) {
+    console.error("Error previewing harvest recipes:", error);
+    res.status(500).send("<h1>Error loading harvest recipes page</h1>");
+  }
+});
+
+// Render harvest recipes page and submit to Magento
+app.post("/render-and-submit-harvest-recipes", async (req, res) => {
+  try {
+    // Fetch all recipes
+    const { items: recipes, total } = await getAllRecipes();
+    // Fetch all categories for the sidebar
+    const allCategories = await getAllCategories();
+    console.log(`Rendering harvest recipes: found ${recipes.length} recipes and ${allCategories.length} categories for sidebar`);
+
+    const RecipeCategoryPage =
+      require("./src/pages/RecipeCategoryPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      RecipeCategoryPage,
+      {
+        recipes,
+        totalCount: total,
+        allCategories,
+        title: "Harvest Recipes",
+      },
+      { inlineCSS: true, inlineJS: true }
+    );
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/harvest-recipes.html`, html);
+
+    // Submit to Magento using a simplified approach
+    const { submitHarvestRecipesToMagento } = require("./src/utils/magentoAPI");
+    const magentoResult = await submitHarvestRecipesToMagento(html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `Harvest recipes page rendered and ${magentoResult.action} in Magento`,
+        title: "Harvest Recipes",
+        recipeCount: recipes.length,
+        magentoId: magentoResult.magentoId,
+        magentoUrl: magentoResult.magentoUrl,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: magentoResult.error,
+        title: "Harvest Recipes",
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering and submitting harvest recipes:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Debug: Show what harvest recipes content would be sent to Magento
+app.get("/debug-harvest-recipes-content", async (req, res) => {
+  try {
+    // Fetch all recipes
+    const { items: recipes, total } = await getAllRecipes();
+    // Fetch all categories for the sidebar
+    const allCategories = await getAllCategories();
+
+    const RecipeCategoryPage =
+      require("./src/pages/RecipeCategoryPage.jsx").default;
+    const { html } = await renderPageToStatic(RecipeCategoryPage, {
+      recipes,
+      totalCount: total,
+      allCategories,
+      title: "Harvest Recipies",
+    });
+
+    // Extract content as would be sent to Magento
+    const { extractBodyContentForMagento } = require("./src/utils/magentoAPI");
+    const magentoContent = extractBodyContentForMagento(html);
+
+    res.json({
+      success: true,
+      title: "Harvest Recipies",
+      recipeCount: recipes.length,
+      fullHtmlLength: html.length,
+      magentoContentLength: magentoContent.length,
+      magentoContent: magentoContent.substring(0, 1000) + "...", // First 1000 chars
+    });
+  } catch (error) {
+    console.error("Error debugging harvest recipes content:", error);
     res.status(500).json({ error: error.message });
   }
 });

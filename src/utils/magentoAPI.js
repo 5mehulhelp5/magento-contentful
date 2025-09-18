@@ -277,7 +277,7 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
   let basePath;
 
   if (contentType === "recipe") {
-    basePath = "garden-guide/harvest-recipies";
+    basePath = "garden-guide/harvest-recipes";
   } else {
     basePath = "garden-guide/" + slugify(categoryTitle);
   }
@@ -983,12 +983,217 @@ async function submitHomepageToMagento(renderedHtml) {
   }
 }
 
+async function submitRecipeCategoryToMagento(categoryData, renderedHtml) {
+  console.log("SUBMITTING RECIPE CATEGORY");
+  const title = categoryData.fields.title || "Untitled Category";
+  const existingMagentoId = categoryData.fields.magentoId;
+  console.log(`Processing recipe category: ${title}`);
+  if (existingMagentoId) {
+    console.log(`Found existing Magento ID: ${existingMagentoId}`);
+  } else {
+    console.log("No existing Magento ID found - will create new page");
+  }
+  // Sanitize and validate data for Magento
+  const sanitizeString = (str) => {
+    if (!str) return "";
+    return str.replace(/[<>\/\\]/g, "").substring(0, 255);
+  };
+  function formatCategoryPath(input) {
+    return input
+      .toLowerCase()
+      .split("/")
+      .map((part) => part.trim().replace(/\s+/g, "-"))
+      .join("/");
+  }
+  function getLastCategory(input) {
+    return input.split("/").pop().trim();
+  }
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+  const pageData = {
+    title: `Recipes: ${sanitizeString(getLastCategory(title))}`,
+    identifier: "recipes/" + formatCategoryPath(title),
+    content: magentoContent,
+    meta_title: sanitizeString(`${title} - Recipes`),
+    meta_description: sanitizeString(
+      `Browse all recipes in the ${title} category`
+    ),
+    active: 1,
+    page_layout: "cms-full-width",
+    sort_order: "100", // Lower priority than individual articles
+    creation_time: categoryData.sys.createdAt
+      ? new Date(categoryData.sys.createdAt)
+          .toISOString()
+          .slice(0, 19)
+          .replace("T", " ")
+      : new Date().toISOString().slice(0, 19).replace("T", " "),
+    update_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+  let result;
+  let action;
+  let finalMagentoId;
+  const contentfulMgmt = new ContentfulManagement();
+  try {
+    if (existingMagentoId) {
+      // We have a Magento ID, try to update the existing page
+      console.log(
+        `Updating existing Magento page with ID: ${existingMagentoId}`
+      );
+      // First verify the page still exists
+      const existingPage = await getCmsPageById(existingMagentoId);
+      if (existingPage) {
+        // Page exists, update it using the ID
+        result = await createOrUpdateCmsPage(
+          pageData,
+          "PUT",
+          existingMagentoId
+        );
+        action = "updated";
+        finalMagentoId = existingMagentoId;
+      } else {
+        // Page no longer exists in Magento, create a new one
+        console.log(
+          `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
+        );
+        result = await createOrUpdateCmsPage(pageData, "POST");
+        action = "created";
+        finalMagentoId = result.data?.id;
+      }
+    } else {
+      // No existing Magento ID, create a new page
+      console.log(`Creating new Magento page for recipe category: ${title}`);
+      result = await createOrUpdateCmsPage(pageData, "POST");
+      action = "created";
+      finalMagentoId = result.data?.id;
+    }
+    if (result.success && finalMagentoId) {
+      // Update Contentful with the Magento ID (for new pages or if it was missing)
+      if (!existingMagentoId || existingMagentoId !== finalMagentoId) {
+        try {
+          console.log(
+            `Updating Contentful recipe category ${categoryData.sys.id} with Magento ID: ${finalMagentoId}`
+          );
+          await contentfulMgmt.updateEntry(categoryData.sys.id, {
+            magentoId: finalMagentoId.toString(),
+          });
+          console.log("✅ Successfully updated Contentful with Magento ID");
+        } catch (updateError) {
+          console.error(
+            "⚠️  Failed to update Contentful with Magento ID:",
+            updateError
+          );
+          // Don't fail the entire operation if Contentful update fails
+        }
+      }
+      console.log(
+        `✅ Successfully ${action} recipe category page in Magento with ID: ${finalMagentoId}`
+      );
+      return {
+        success: true,
+        action: action,
+        magentoId: finalMagentoId,
+        magentoUrl: `${process.env.STAGING_MAGENTO_BASE_URL}/${pageData.identifier}`,
+        title: title,
+        identifier: pageData.identifier,
+      };
+    } else {
+      console.error(`❌ Failed to ${action} recipe category in Magento:`, result.error);
+      return {
+        success: false,
+        error: result.error,
+        action: action,
+        identifier: pageData.identifier,
+      };
+    }
+  } catch (error) {
+    console.error(`❌ Error during recipe category ${action || "submission"}:`, error);
+    return {
+      success: false,
+      error: error.message,
+      action: action || "unknown",
+      identifier: pageData.identifier,
+    };
+  }
+}
+
+async function submitHarvestRecipesToMagento(renderedHtml) {
+  console.log("SUBMITTING HARVEST RECIPES PAGE");
+
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
+  const pageData = {
+    title: "Harvest Recipes",
+    identifier: "garden-guide/harvest-recipes",
+    content: magentoContent,
+    meta_title: "Harvest Recipes - Garden to Table Recipes",
+    meta_description: "Discover delicious recipes using fresh ingredients from your garden. From harvest to table, make the most of your homegrown produce.",
+    active: 1,
+    page_layout: "cms-full-width",
+    sort_order: "50", // Higher priority than category pages
+    creation_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+    update_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  try {
+    // Check if the page already exists
+    const existingPage = await getCmsPageByIdentifier(pageData.identifier);
+    let result;
+    let action;
+    let finalMagentoId;
+
+    if (existingPage) {
+      // Page exists, update it
+      console.log(`Updating existing Harvest Recipes page with ID: ${existingPage.id}`);
+      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id);
+      action = "updated";
+      finalMagentoId = existingPage.id;
+    } else {
+      // Page doesn't exist, create it
+      console.log("Creating new Harvest Recipes page");
+      result = await createOrUpdateCmsPage(pageData, "POST");
+      action = "created";
+      finalMagentoId = result.data?.id;
+    }
+
+    if (result.success && finalMagentoId) {
+      console.log(`✅ Successfully ${action} Harvest Recipes page in Magento with ID: ${finalMagentoId}`);
+      return {
+        success: true,
+        action: action,
+        magentoId: finalMagentoId,
+        magentoUrl: `${process.env.STAGING_MAGENTO_BASE_URL}/${pageData.identifier}`,
+        title: "Harvest Recipes",
+        identifier: pageData.identifier,
+      };
+    } else {
+      console.error(`❌ Failed to ${action} Harvest Recipes page in Magento:`, result.error);
+      return {
+        success: false,
+        error: result.error,
+        action: action,
+        identifier: pageData.identifier,
+      };
+    }
+  } catch (error) {
+    console.error(`❌ Error during Harvest Recipes page submission:`, error);
+    return {
+      success: false,
+      error: error.message,
+      action: "unknown",
+      identifier: pageData.identifier,
+    };
+  }
+}
+
 module.exports = {
   getCmsPageByIdentifier,
   getCmsPageById,
   createOrUpdateCmsPage,
   submitToMagento,
   submitCategoryToMagento,
+  submitRecipeCategoryToMagento,
+  submitHarvestRecipesToMagento,
   submitFAQToMagento,
   submitHomepageToMagento,
   extractBodyContentForMagento,
