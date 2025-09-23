@@ -91,7 +91,12 @@ async function getCmsPageByIdentifier(identifier) {
  * @param {string} contentType - Content type ("recipe", "article", "category", "faq", etc.)
  * @returns {Promise<Object>} API response
  */
-async function createOrUpdateCmsPage(pageData, method = "POST", pageId = null, contentType = "article") {
+async function createOrUpdateCmsPage(
+  pageData,
+  method = "POST",
+  pageId = null,
+  contentType = "article"
+) {
   const baseUrl = process.env.STAGING_MAGENTO_BASE_URL;
   const endpoint = pageId
     ? `${baseUrl}/rest/default/V1/cmsPage/${pageId}`
@@ -330,7 +335,12 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
 
     if (existingPage) {
       // Page exists, update it using the ID
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId, contentType);
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingMagentoId,
+        contentType
+      );
       action = "updated";
       finalMagentoId = existingMagentoId;
     } else {
@@ -354,7 +364,12 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       console.log(
         `Found existing page with identifier ${frontendUrl}, updating and saving ID`
       );
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, contentType);
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingPage.id,
+        contentType
+      );
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
@@ -459,9 +474,29 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
  * @returns {string} Just the body content with minimal scoped styles
  */
 function extractBodyContentForMagento(fullHtml) {
-  // Extract styles from head
+  const fs = require("fs");
+  const path = require("path");
+
+  // Extract styles from head (inline styles)
   const styleMatch = fullHtml.match(/<style>([\s\S]*?)<\/style>/);
   let styles = styleMatch ? styleMatch[1] : "";
+
+  // Also check for external stylesheet link and read the CSS file
+  const linkMatch = fullHtml.match(
+    /<link[^>]+href=["']([^"']*styles\.css[^"']*)["'][^>]*>/
+  );
+  if (linkMatch) {
+    try {
+      // Read the external CSS file
+      const cssPath = path.join(__dirname, "../../public/styles.css");
+      const externalCSS = fs.readFileSync(cssPath, "utf8");
+
+      // Append external CSS to any inline styles
+      styles += externalCSS;
+    } catch (error) {
+      console.log("Could not read external CSS file:", error.message);
+    }
+  }
 
   // Extract body content
   const bodyMatch = fullHtml.match(/<body>([\s\S]*?)<\/body>/);
@@ -470,32 +505,16 @@ function extractBodyContentForMagento(fullHtml) {
   // Wrap content in a scoped container to prevent CSS conflicts
   const scopedContent = `<div class="contentful-category-page">${bodyContent}</div>`;
 
+  // Simple CSS scoping - prefix main classes to avoid conflicts in Magento
   /*
-  // Simple CSS scoping - just prefix our main classes to avoid conflicts
   if (styles) {
     styles = styles
       // Scope body styles to our container
-      .replace(/body\s*{/g, ".contentful-category-page {")
-      // Scope all class selectors
-      .replace(
-        /(\s|^)(\.[a-zA-Z][a-zA-Z0-9_-]*)/g,
-        "$1.contentful-category-page $2"
-      )
-      // Fix our responsive-grid specifically
-      .replace(
-        /\.contentful-category-page \.contentful-category-page/g,
-        ".contentful-category-page"
-      )
-      // Fix media queries that got double-scoped
-      .replace(
-        /@media[^{]+{[^}]+\.contentful-category-page \.responsive-grid/g,
-        (match) => {
-          return match.replace(
-            ".contentful-category-page .responsive-grid",
-            ".contentful-category-page .responsive-grid"
-          );
-        }
-      );
+      .replace(/^body\s*{/gm, ".contentful-category-page {")
+      // Scope class selectors that might conflict
+      .replace(/(\s|^|,)(\.[a-zA-Z][a-zA-Z0-9_-]*)/g, "$1.contentful-category-page $2")
+      // Fix double-scoping of our container class
+      .replace(/\.contentful-category-page \.contentful-category-page/g, ".contentful-category-page");
   }*/
 
   return `<style>${styles}</style>\n${scopedContent}`;
@@ -591,7 +610,12 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
           `⚠️  Magento page with ID ${existingMagentoId} not found, creating new page`
         );
         pageData.identifier = pageData.identifier;
-        result = await createOrUpdateCmsPage(pageData, "POST", null, "category");
+        result = await createOrUpdateCmsPage(
+          pageData,
+          "POST",
+          null,
+          "category"
+        );
         action = "recreated";
         finalMagentoId = result.success ? result.data.id : null;
       }
@@ -607,7 +631,12 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         console.log(
           `Found existing page with identifier ${pageData.identifier}, updating and saving ID`
         );
-        result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "category");
+        result = await createOrUpdateCmsPage(
+          pageData,
+          "PUT",
+          existingPage.id,
+          "category"
+        );
         action = "updated";
         finalMagentoId = existingPage.id.toString();
 
@@ -625,7 +654,12 @@ async function submitCategoryToMagento(categoryData, renderedHtml) {
         // No existing page found, create a new one
         console.log(`Creating new Magento page for category "${title}"`);
         pageData.identifier = pageData.identifier;
-        result = await createOrUpdateCmsPage(pageData, "POST", null, "category");
+        result = await createOrUpdateCmsPage(
+          pageData,
+          "POST",
+          null,
+          "category"
+        );
         action = "created";
         finalMagentoId = result.success ? result.data.id : null;
 
@@ -794,7 +828,12 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
     const existingPage = await getCmsPageById(existingMagentoId);
 
     if (existingPage) {
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingMagentoId, "faq");
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingMagentoId,
+        "faq"
+      );
       action = "updated";
       finalMagentoId = existingMagentoId;
     } else {
@@ -816,7 +855,12 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
       console.log(
         `Found existing page with identifier ${frontendUrl}, updating and saving ID`
       );
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "faq");
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingPage.id,
+        "faq"
+      );
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
@@ -952,7 +996,12 @@ async function submitHomepageToMagento(renderedHtml) {
   if (existingPage) {
     // Page exists, update it
     console.log(`Updating existing homepage with ID: ${existingPage.id}`);
-    result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "homepage");
+    result = await createOrUpdateCmsPage(
+      pageData,
+      "PUT",
+      existingPage.id,
+      "homepage"
+    );
     action = "updated";
     finalMagentoId = existingPage.id;
   } else {
@@ -1158,7 +1207,12 @@ async function submitHarvestRecipesToMagento(renderedHtml) {
       console.log(
         `Updating existing Harvest Recipes page with ID: ${existingPage.id}`
       );
-      result = await createOrUpdateCmsPage(pageData, "PUT", existingPage.id, "recipe");
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingPage.id,
+        "recipe"
+      );
       action = "updated";
       finalMagentoId = existingPage.id;
     } else {
@@ -1204,6 +1258,103 @@ async function submitHarvestRecipesToMagento(renderedHtml) {
   }
 }
 
+// Submit FAQ category page to Magento
+async function submitFAQCategoryToMagento(categoryData, renderedHtml) {
+  console.log("SUBMITTING FAQ CATEGORY");
+  const title = categoryData.fields.title || "FAQs";
+  const description = categoryData.fields.description || "";
+
+  console.log(`Processing FAQ category: ${title}`);
+
+  // Sanitize and validate data for Magento
+  const sanitizeString = (str) => {
+    if (!str) return "";
+    return str.replace(/[<>\/\\]/g, "").substring(0, 255);
+  };
+
+  function formatCategoryPath(input) {
+    return input
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+  }
+
+  // Extract just the body content for Magento (remove DOCTYPE, html, head tags)
+  const magentoContent = extractBodyContentForMagento(renderedHtml);
+
+  const sanitizedTitle = sanitizeString(title);
+  const categoryPath = formatCategoryPath(title);
+
+  const pageData = {
+    title: `${sanitizedTitle}: FAQs`,
+    identifier: `garden-guide/${categoryPath}/faqs`,
+    content: magentoContent,
+    meta_title: `${sanitizedTitle}: FAQs - Garden Guide`,
+    meta_description: description
+      ? sanitizeString(description)
+      : `Browse frequently asked questions in the ${sanitizedTitle.toLowerCase()} category.`,
+    active: 1,
+    page_layout: "cms-full-width",
+    sort_order: "40", // FAQ categories have medium priority
+    creation_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+    update_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  try {
+    console.log(
+      "Checking for existing FAQ category page with identifier:",
+      pageData.identifier
+    );
+
+    // Check if a page with this identifier already exists
+    const existingPage = await getCmsPageByIdentifier(pageData.identifier);
+
+    let result;
+    if (existingPage) {
+      console.log(`Updating existing FAQ category page ID ${existingPage.id}`);
+      // Update existing page
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "PUT",
+        existingPage.id,
+        "faq-category"
+      );
+
+      return {
+        success: true,
+        action: "updated",
+        pageId: existingPage.id,
+        identifier: pageData.identifier,
+        title: pageData.title,
+      };
+    } else {
+      console.log("Creating new FAQ category page");
+      // Create new page
+      result = await createOrUpdateCmsPage(
+        pageData,
+        "POST",
+        null,
+        "faq-category"
+      );
+
+      return {
+        success: true,
+        action: "created",
+        pageId: result.success ? result.data.id : null,
+        identifier: pageData.identifier,
+        title: pageData.title,
+      };
+    }
+  } catch (error) {
+    console.error("Error submitting FAQ category to Magento:", error.message);
+    return {
+      success: false,
+      error: error.message,
+      identifier: pageData.identifier,
+    };
+  }
+}
+
 module.exports = {
   getCmsPageByIdentifier,
   getCmsPageById,
@@ -1213,6 +1364,7 @@ module.exports = {
   submitRecipeCategoryToMagento,
   submitHarvestRecipesToMagento,
   submitFAQToMagento,
+  submitFAQCategoryToMagento,
   submitHomepageToMagento,
   extractBodyContentForMagento,
 };

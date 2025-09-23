@@ -20,8 +20,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `python3 bulk_sync.py` - Bulk sync articles from Contentful to Magento (requires Python setup)
 - `python3 bulk_category_sync.py` - Bulk sync category pages from Contentful to Magento
 - `python3 bulk_faq_sync.py` - Bulk sync FAQ content from Contentful to Magento
+- `python3 bulk_recipe_sync.py` - Bulk sync recipe content from Contentful to Magento
 - `./run_bulk_sync.sh` - Shell script for automated bulk sync
 - `./run_category_sync.sh` - Shell script for automated category sync with logging
+- `./run_recipe_sync.sh` - Shell script for automated recipe sync with logging
+- `./setup_bulk_sync.sh` - Initial setup script for bulk sync environment
 - Database integration available via `src/utils/database.js` for MySQL operations
 
 ## High-Level Architecture
@@ -66,13 +69,13 @@ This is a **bi-directional content management system** that bridges Contentful C
 ## Code Organization Patterns
 
 ### File Structure Logic
-- `/src/components/` - Reusable React components (ArticleCard, RichTextRenderer, Header)
-- `/src/pages/` - Page templates for different content types (ArticlePage, CategoryListPage)
-- `/src/utils/` - Business logic utilities (magentoAPI, contentfulManagement, authentication)
-- `/src/svgs/` - SVG React components for category icons (KitchenGardening, PlantCare, etc.)
+- `/src/components/` - Reusable React components (ArticleCard, RichTextRenderer, Header, HomeHeader, CategorySection, ProductSidebar, CategorySidebar, RecipeCard, RecipeIngredientsList, RecipeInstructionsList)
+- `/src/pages/` - Page templates for different content types (ArticlePage, CategoryListPage, HomePage, FAQPage, RecipePage, RecipeCategoryPage, HeaderTestPage)
+- `/src/utils/` - Business logic utilities (magentoAPI, contentfulManagement, magentoAuth, database, articleCardTemplate, recipeCardTemplate)
+- `/src/svgs/` - SVG React components for category icons (KitchenGardening, PlantCare, FlowersAndMore, GettingStarted)
 - `/output/` - Generated static HTML files
 - `/public/` - Static assets including external CSS file (styles.css)
-- Root-level scripts for deployment and bulk operations
+- Root-level scripts for deployment and bulk operations (Python and shell scripts)
 
 ### Component Design Patterns
 - **Functional components**: All components use function declarations, not arrow functions
@@ -112,10 +115,20 @@ DATABASE_HOST/USER/PASSWORD/NAME - MySQL connection (optional)
 - **Magento ID field** added for persistent tracking across slug changes
 - **Rich text rendering** handles tables, lists, images, and complex formatting
 
-### Category Content Type  
+### Category Content Type
 - **Hierarchical structure** with parent-child relationships via Contentful references
 - **Article aggregation** automatically collects articles from child categories
 - **Magento ID field** for category page tracking and bi-directional sync
+
+### Recipe Content Type
+- **Recipe-specific data structure** with ingredients, instructions, and metadata
+- **Rich text rendering** for complex cooking instructions and descriptions
+- **Magento ID field** for recipe page tracking and bi-directional sync
+
+### FAQ Content Type
+- **Question-answer format** with rich text support for detailed explanations
+- **Organized content** for help and support pages
+- **Magento ID field** for FAQ page tracking and bi-directional sync
 
 ### Page Generation Process
 1. Fetch content from Contentful (article or category data)
@@ -145,6 +158,14 @@ DATABASE_HOST/USER/PASSWORD/NAME - MySQL connection (optional)
 - Database integration optional but recommended for advanced operations
 - I usually have the server running with nodemon on 3000. Always try it before starting your own server.
 - Only make commits when I specifically ask you to.
+
+## Testing and Development
+- Use test files `WEBHOOK_TESTS.md` and `TESTING_MAGENTO_ID_WORKFLOW.md` for curl commands to test endpoints
+- Preview endpoints available for all content types before publishing to Magento
+- Webhook testing can be done locally with ngrok for Contentful integration testing
+- Environment configuration stored in `.env` file with backup in `.env.local`
+- Babel configuration in `.babelrc` for JSX transpilation
+- Nodemon configuration in `nodemon.json` for development server auto-reload
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

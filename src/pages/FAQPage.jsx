@@ -1,5 +1,6 @@
-const React = require("react");
-const RichTextRenderer = require("../components/RichTextRenderer").default;
+import React from "react";
+import RichTextRenderer from "../components/RichTextRenderer.jsx";
+import Header from "../components/Header.jsx";
 
 /**
  * FAQ Page Component
@@ -13,104 +14,62 @@ function FAQPage({ data = {}, title }) {
     metaTitle,
     metaDescription,
     freshdeskCategoryName,
-    tags = [],
-    publishedAt,
-    freshdeskHits,
-    freshdeskThumbsUp,
-    freshdeskThumbsDown,
   } = data;
 
-  // Format publish date
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formattedDate = formatDate(publishedAt);
+  // Create breadcrumbs for FAQ page
+  const headerBreadcrumbs = [
+    { name: "Home", href: "/" },
+    { name: "Help Center", href: "/help" },
+    { name: freshdeskCategoryName || "FAQ", href: freshdeskCategoryName ? `/help/${freshdeskCategoryName.toLowerCase().replace(/\s+/g, '-')}` : "/help" },
+    { name: title || "FAQ" },
+  ];
 
   return (
     <div className="faq-page">
-      {/* FAQ Header */}
-      <div className="faq-header">
-        <div className="faq-container">
-          <div className="faq-breadcrumb">
-            <a href="/help" className="breadcrumb-link">
-              Help Center
-            </a>
-            <span className="breadcrumb-separator"> &gt; </span>
-            {freshdeskCategoryName && (
-              <span className="breadcrumb-category">
-                {freshdeskCategoryName}
-              </span>
-            )}
-          </div>
-          <h1 className="faq-question">{title}</h1>
-          {formattedDate && (
-            <time className="faq-date">
-              Published {formattedDate}
-            </time>
-          )}
-        </div>
-      </div>
+      {/* Header Component */}
+      <Header key="header" breadcrumbs={headerBreadcrumbs} />
 
-      {/* FAQ Answer Section */}
-      <article className="faq-content-section">
-        <div className="faq-content">
-          <div className="faq-answer">
-            {body && <RichTextRenderer document={body} />}
-          </div>
-        </div>
-      </article>
-
-      {/* FAQ Metadata Section */}
-      <div className="faq-meta">
-        <div className="faq-container">
-          {/* Engagement Stats */}
-          {(freshdeskHits || freshdeskThumbsUp || freshdeskThumbsDown) && (
-            <div className="faq-stats">
-              <h3>Was this helpful?</h3>
-              <div className="faq-stats-row">
-                {freshdeskHits && (
-                  <span className="stat-item">
-                    {freshdeskHits} views
-                  </span>
-                )}
-                {freshdeskThumbsUp && (
-                  <span className="stat-item positive">
-                    👍 {freshdeskThumbsUp}
-                  </span>
-                )}
-                {freshdeskThumbsDown && (
-                  <span className="stat-item negative">
-                    👎 {freshdeskThumbsDown}
-                  </span>
-                )}
-              </div>
+      {/* Main content wrapper */}
+      <div
+        key="main-wrapper"
+        className="faq-with-sidebar"
+        style={{
+          maxWidth: "1314px",
+          margin: "0 auto",
+          padding: "0 1rem",
+          display: "flex",
+          gap: "2rem",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Main content column */}
+        <div
+          key="main-content"
+          className="faq-main-content"
+          style={{
+            flex: "1",
+            minWidth: "0", // Allows content to shrink
+          }}
+        >
+          {/* FAQ Header */}
+          <div key="faq-header" className="article-header">
+            <div className="article-container">
+              <h1 key="title" className="article-title">
+                {title || "FAQ"}
+              </h1>
             </div>
-          )}
+          </div>
 
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div className="faq-tags">
-              <h4>Related Topics:</h4>
-              <div className="tags-list">
-                {tags.map((tag, index) => (
-                  <span key={index} className="faq-tag">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+          {/* FAQ Content */}
+          <article key="content" className="article-content-section">
+            <div className="article-content" style={{ fontSize: "19px" }}>
+              {body && <RichTextRenderer document={body} />}
             </div>
-          )}
+          </article>
         </div>
       </div>
     </div>
   );
 }
 
-module.exports = { default: FAQPage };
+export default FAQPage;
