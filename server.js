@@ -1366,27 +1366,134 @@ async function getAllFAQCategories() {
   }
 }
 
-// FAQ Category Endpoints
-// New garden-guide URL structure routes
-app.get("/preview/garden-guide/:categoryName/faqs", async (req, res) => {
+// New Dynamic FAQ Category Functions (using faqCategory relationships)
+// Get all FAQ categories from Contentful
+async function getFAQCategories() {
   try {
-    const { categoryName } = req.params;
+    console.log("Fetching all FAQ categories from Contentful");
 
-    // Convert URL slug to category title (e.g., 'get-started' -> 'Get Started')
-    const categoryTitle = categoryName
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    const entries = await contentfulClient.getEntries({
+      content_type: "faqCategory",
+      limit: 1000, // Get all FAQ categories
+    });
 
-    // Fetch all FAQs (for now, show all FAQs regardless of category)
-    const { items: allFAQs, total } = await getAllFAQs(100);
+    console.log(`Found ${entries.items.length} FAQ categories`);
+    return {
+      items: entries.items,
+      total: entries.total,
+      skip: entries.skip,
+    };
+  } catch (error) {
+    console.error("Error fetching FAQ categories:", error);
+    return {
+      items: [],
+      total: 0,
+      skip: 0,
+    };
+  }
+}
+
+// Get FAQs by FAQ category ID
+async function getFAQsByCategoryId(categoryId, limit = 100, skip = 0) {
+  try {
+    console.log(`Fetching FAQs for FAQ category ID: ${categoryId}`);
+
+    const entries = await contentfulClient.getEntries({
+      content_type: "faq",
+      "fields.faqCategory.sys.id": categoryId,
+      limit: limit,
+      skip: skip,
+      order: "fields.title",
+    });
+
     console.log(
-      `Found ${allFAQs.length} total FAQs for category ${categoryTitle}`
+      `Found ${entries.items.length} FAQs for category ID ${categoryId}`
     );
 
-    // For now, show all FAQs since category filtering might not be set up properly
-    // TODO: Implement proper category filtering once FAQ-category relationships are established
-    const faqs = allFAQs;
+    return {
+      items: entries.items,
+      total: entries.total,
+      skip: entries.skip,
+    };
+  } catch (error) {
+    console.error(`Error fetching FAQs by category ID ${categoryId}:`, error);
+    return {
+      items: [],
+      total: 0,
+      skip: 0,
+    };
+  }
+}
+
+// Get FAQ category by slug
+async function getFAQCategoryBySlug(slug) {
+  try {
+    console.log(`Fetching FAQ category by slug: ${slug}`);
+
+    const entries = await contentfulClient.getEntries({
+      content_type: "faqCategory",
+      "fields.slug": slug,
+      limit: 1,
+    });
+
+    if (entries.items.length === 0) {
+      console.log(`No FAQ category found with slug: ${slug}`);
+      return null;
+    }
+
+    console.log(`Found FAQ category: ${entries.items[0].fields.title}`);
+    return entries.items[0];
+  } catch (error) {
+    console.error(`Error fetching FAQ category by slug ${slug}:`, error);
+    return null;
+  }
+}
+
+// Get FAQ category by ID
+async function getFAQCategoryById(categoryId) {
+  try {
+    console.log(`Fetching FAQ category by ID: ${categoryId}`);
+
+    const category = await contentfulClient.getEntry(categoryId);
+
+    if (category.sys.contentType.sys.id !== "faqCategory") {
+      console.warn(`Entry ${categoryId} is not an FAQ category`);
+      return null;
+    }
+
+    console.log(`Found FAQ category: ${category.fields.title}`);
+    return category;
+  } catch (error) {
+    console.error(`Error fetching FAQ category by ID ${categoryId}:`, error);
+    return null;
+  }
+}
+
+// FAQ Category Endpoints
+// New garden-guide URL structure routes
+app.get("/preview/garden-guide/:categorySlug/faqs", async (req, res) => {
+  try {
+    const { categorySlug } = req.params;
+
+    // Get FAQ category by slug
+    const categoryData = await getFAQCategoryBySlug(categorySlug);
+    if (!categoryData) {
+      return res.status(404).json({
+        error: "FAQ category not found",
+        categorySlug: categorySlug,
+      });
+    }
+
+    console.log(`Found FAQ category: ${categoryData.fields.title}`);
+
+    // Fetch FAQs for this specific category
+    const { items: faqs, total } = await getFAQsByCategoryId(
+      categoryData.sys.id,
+      100
+    );
+    console.log(
+      `Found ${faqs.length} FAQs for category ${categoryData.fields.title}`
+    );
 
     // Fetch all article categories for sidebar (not FAQ categories)
     const { items: allCategories } = await contentfulClient.getEntries({
@@ -1394,20 +1501,8 @@ app.get("/preview/garden-guide/:categoryName/faqs", async (req, res) => {
       limit: 1000, // Get all categories
     });
 
-    // Create fake category data for the FAQ page
-    const categoryData = {
-      sys: { id: `${categoryName}-faqs` },
-      fields: {
-        title: categoryTitle,
-        description: `Frequently asked questions about ${categoryTitle.toLowerCase()}`,
-      },
-    };
-
-    // Find current category ID for sidebar highlighting
-    const currentCategory = allCategories.find(
-      (cat) => cat.fields.title === categoryTitle
-    );
-    const currentCategoryId = currentCategory?.sys?.id || null;
+    // Find current category ID for sidebar highlighting (using garden guide categories)
+    const currentCategoryId = null; // FAQ categories are separate from garden guide categories
 
     const FAQCategoryPage = require("./src/pages/FAQCategoryPage.jsx").default;
     const { html } = await renderPageToStatic(FAQCategoryPage, {
@@ -1423,6 +1518,164 @@ app.get("/preview/garden-guide/:categoryName/faqs", async (req, res) => {
     console.error("Error rendering FAQ category page:", error);
     res.status(500).json({
       error: "Failed to render FAQ category page",
+      details: error.message,
+    });
+  }
+});
+
+// Individual FAQ routes using new garden-guide URL structure
+// Preview individual FAQ by category and FAQ slugs
+app.get("/preview/garden-guide/:categorySlug/faqs/:faqSlug", async (req, res) => {
+  try {
+    const { categorySlug, faqSlug } = req.params;
+
+    // First, find the FAQ by slug
+    const faqEntries = await contentfulClient.getEntries({
+      content_type: "faq",
+      "fields.slug": faqSlug,
+      limit: 1,
+    });
+
+    if (faqEntries.items.length === 0) {
+      return res.status(404).json({
+        error: "FAQ not found",
+        faqSlug: faqSlug,
+      });
+    }
+
+    const faqEntry = faqEntries.items[0];
+
+    // Verify the FAQ belongs to the correct category
+    const categoryData = await getFAQCategoryBySlug(categorySlug);
+    if (!categoryData) {
+      return res.status(404).json({
+        error: "FAQ category not found",
+        categorySlug: categorySlug,
+      });
+    }
+
+    // Check if the FAQ is linked to this category
+    const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
+    if (faqCategoryId !== categoryData.sys.id) {
+      return res.status(404).json({
+        error: "FAQ does not belong to this category",
+        faqSlug: faqSlug,
+        categorySlug: categorySlug,
+      });
+    }
+
+    console.log(`Previewing FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`);
+
+    const FAQPage = require("./src/pages/FAQPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      FAQPage,
+      {
+        data: faqEntry.fields,
+        title: faqEntry.fields.title,
+        categoryData: categoryData,
+      },
+      { inlineCSS: true }
+    );
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error previewing individual FAQ:", error);
+    res.status(500).json({
+      error: "Failed to preview FAQ",
+      details: error.message,
+    });
+  }
+});
+
+// Render and submit individual FAQ by category and FAQ slugs
+app.post("/render-and-submit-garden-guide/:categorySlug/faqs/:faqSlug", async (req, res) => {
+  try {
+    const { categorySlug, faqSlug } = req.params;
+
+    // First, find the FAQ by slug
+    const faqEntries = await contentfulClient.getEntries({
+      content_type: "faq",
+      "fields.slug": faqSlug,
+      limit: 1,
+    });
+
+    if (faqEntries.items.length === 0) {
+      return res.status(404).json({
+        error: "FAQ not found",
+        faqSlug: faqSlug,
+      });
+    }
+
+    const faqEntry = faqEntries.items[0];
+
+    // Verify the FAQ belongs to the correct category
+    const categoryData = await getFAQCategoryBySlug(categorySlug);
+    if (!categoryData) {
+      return res.status(404).json({
+        error: "FAQ category not found",
+        categorySlug: categorySlug,
+      });
+    }
+
+    // Check if the FAQ is linked to this category
+    const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
+    if (faqCategoryId !== categoryData.sys.id) {
+      return res.status(404).json({
+        error: "FAQ does not belong to this category",
+        faqSlug: faqSlug,
+        categorySlug: categorySlug,
+      });
+    }
+
+    console.log(`Rendering and submitting FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`);
+
+    const FAQPage = require("./src/pages/FAQPage.jsx").default;
+    const { html } = await renderPageToStatic(
+      FAQPage,
+      {
+        data: faqEntry.fields,
+        title: faqEntry.fields.title,
+        categoryData: categoryData,
+      },
+      { inlineCSS: true }
+    );
+
+    // Save to output directory
+    await fs.mkdir("./output", { recursive: true });
+    await fs.writeFile(`./output/faq-${categorySlug}-${faqSlug}.html`, html);
+
+    // Submit to Magento
+    const { submitFAQToMagento } = require("./src/utils/magentoAPI");
+    const magentoResult = await submitFAQToMagento(faqEntry, html);
+
+    if (magentoResult.success) {
+      res.json({
+        success: true,
+        message: `FAQ rendered and ${magentoResult.action} in Magento`,
+        faqSlug: faqSlug,
+        categorySlug: categorySlug,
+        title: faqEntry.fields.title,
+        magento: {
+          action: magentoResult.action,
+          identifier: magentoResult.identifier,
+          pageId: magentoResult.pageId,
+        },
+        url: `/garden-guide/${categorySlug}/faqs/${faqSlug}`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "FAQ rendered but failed to submit to Magento",
+        faqSlug: faqSlug,
+        categorySlug: categorySlug,
+        title: faqEntry.fields.title,
+        error: magentoResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error rendering and submitting individual FAQ:", error);
+    res.status(500).json({
+      error: "Failed to render and submit FAQ",
       details: error.message,
     });
   }
@@ -1529,23 +1782,30 @@ app.get("/preview/faq-category/:categoryName", async (req, res) => {
 
 // New garden-guide URL structure POST route
 app.post(
-  "/render-and-submit-garden-guide/:categoryName/faqs",
+  "/render-and-submit-garden-guide/:categorySlug/faqs",
   async (req, res) => {
     try {
-      const { categoryName } = req.params;
+      const { categorySlug } = req.params;
 
-      // Convert URL slug to category title (e.g., 'get-started' -> 'Get Started')
-      const categoryTitle = categoryName
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
+      // Get FAQ category by slug
+      const categoryData = await getFAQCategoryBySlug(categorySlug);
+      if (!categoryData) {
+        return res.status(404).json({
+          error: "FAQ category not found",
+          categorySlug: categorySlug,
+        });
+      }
 
-      // Fetch all FAQs with 100-item limit to prevent failures
-      const { items: allFAQs, total } = await getAllFAQs(100);
-      console.log(
-        `Found ${allFAQs.length} total FAQs for category ${categoryTitle}`
+      console.log(`Found FAQ category: ${categoryData.fields.title}`);
+
+      // Fetch FAQs for this specific category
+      const { items: faqs, total } = await getFAQsByCategoryId(
+        categoryData.sys.id,
+        1000
       );
-      const faqs = allFAQs; // Show all FAQs for now since category filtering needs work
+      console.log(
+        `Found ${faqs.length} FAQs for category ${categoryData.fields.title}`
+      );
 
       // Fetch all article categories for sidebar (not FAQ categories)
       const { items: allCategories } = await contentfulClient.getEntries({
@@ -1553,20 +1813,8 @@ app.post(
         limit: 1000, // Get all categories
       });
 
-      // Create fake category data for the FAQ page
-      const categoryData = {
-        sys: { id: `${categoryName}-faqs` },
-        fields: {
-          title: categoryTitle,
-          description: `Frequently asked questions about ${categoryTitle.toLowerCase()}`,
-        },
-      };
-
-      // Find current category ID for sidebar highlighting
-      const currentCategory = allCategories.find(
-        (cat) => cat.fields.title === categoryTitle
-      );
-      const currentCategoryId = currentCategory?.sys?.id || null;
+      // Find current category ID for sidebar highlighting (using garden guide categories)
+      const currentCategoryId = null; // FAQ categories are separate from garden guide categories
 
       const FAQCategoryPage =
         require("./src/pages/FAQCategoryPage.jsx").default;
@@ -1585,7 +1833,7 @@ app.post(
       // Save to output directory
       await fs.mkdir("./output", { recursive: true });
       await fs.writeFile(
-        `./output/garden-guide-${categoryName}-faqs.html`,
+        `./output/garden-guide-${categorySlug}-faqs.html`,
         html
       );
 
@@ -1599,13 +1847,13 @@ app.post(
       if (magentoResult.success) {
         res.json({
           success: true,
-          message: `FAQ category page for ${categoryTitle} rendered and ${magentoResult.action} in Magento`,
-          categoryName: categoryName,
-          title: categoryTitle,
+          message: `FAQ category page for ${categoryData.fields.title} rendered and ${magentoResult.action} in Magento`,
+          categorySlug: categorySlug,
+          title: categoryData.fields.title,
           magentoId: magentoResult.pageId,
           action: magentoResult.action,
           totalFAQs: faqs.length,
-          url: `/garden-guide/${categoryName}/faqs`,
+          url: `/garden-guide/${categorySlug}/faqs`,
         });
       } else {
         res.status(500).json({

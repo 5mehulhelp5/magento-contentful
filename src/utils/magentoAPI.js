@@ -776,17 +776,45 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
       .replace(/^[-\/]+|[-\/]+$/g, "");
   }
 
-  // Create FAQ URL structure: help/{category}/{slug}
-  const categorySlug = contentfulEntry.fields.freshdeskCategoryName
-    ? slugify(contentfulEntry.fields.freshdeskCategoryName)
-    : "general";
+  // Create FAQ URL structure: garden-guide/{categorySlug}/faqs/{faqSlug}
+  let categorySlug = "general"; // Default fallback
+
+  // Try to get category slug from new faqCategory relationship
+  if (contentfulEntry.fields.faqCategory && contentfulEntry.fields.faqCategory.sys && contentfulEntry.fields.faqCategory.sys.id) {
+    try {
+      // Fetch the FAQ category to get its slug
+      const { createClient } = require('contentful');
+      const contentfulClient = createClient({
+        space: process.env.CONTENTFUL_SPACE_ID,
+        accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
+      });
+
+      const faqCategory = await contentfulClient.getEntry(contentfulEntry.fields.faqCategory.sys.id);
+      const faqCategorySlug = faqCategory.fields?.slug || faqCategory.fields?.frontendUrl;
+      if (faqCategorySlug) {
+        categorySlug = faqCategorySlug;
+      } else {
+        // Fallback to slugifying the category title
+        categorySlug = slugify(faqCategory.fields?.title || "general");
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch FAQ category, using fallback: ${error.message}`);
+      // Fallback to old method if new category fetch fails
+      categorySlug = contentfulEntry.fields.freshdeskCategoryName
+        ? slugify(contentfulEntry.fields.freshdeskCategoryName)
+        : "general";
+    }
+  } else if (contentfulEntry.fields.freshdeskCategoryName) {
+    // Fallback to old method for legacy FAQs
+    categorySlug = slugify(contentfulEntry.fields.freshdeskCategoryName);
+  }
 
   const faqSlug =
     contentfulEntry.fields.slug || contentfulEntry.sys.id.toLowerCase();
 
   const frontendUrl = existingFrontendUrl
     ? existingFrontendUrl
-    : `help/${categorySlug}/${faqSlug}`;
+    : `garden-guide/${categorySlug}/faqs/${faqSlug}`;
 
   console.log("FAQ FRONTEND URL");
   console.log(frontendUrl);
@@ -1283,7 +1311,9 @@ async function submitFAQCategoryToMagento(categoryData, renderedHtml) {
   const magentoContent = extractBodyContentForMagento(renderedHtml);
 
   const sanitizedTitle = sanitizeString(title);
-  const categoryPath = formatCategoryPath(title);
+  // Use slug from Contentful if available, otherwise fall back to formatting the title
+  const categorySlug = categoryData.fields.slug || categoryData.fields.frontendUrl;
+  const categoryPath = categorySlug || formatCategoryPath(title);
 
   const pageData = {
     title: `${sanitizedTitle}: FAQs`,

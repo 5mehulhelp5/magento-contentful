@@ -67,9 +67,9 @@ class FAQSyncManager:
             'content_type': 'faq',
             'limit': min(limit, 100),  # Contentful max is 100
             'skip': skip,
-            'include': 2  # Include linked entries
+            'include': 2  # Include linked entries (to get faqCategory data)
         }
-        
+
         try:
             response = self.session.get(url, params=params)
             response.raise_for_status()
@@ -78,9 +78,43 @@ class FAQSyncManager:
             print(f"❌ Error fetching FAQ entries: {e}")
             return None
 
+    def get_faq_category_slug(self, entry: Dict, included_entries: List[Dict]) -> Optional[str]:
+        """Extract FAQ category slug from entry and included data"""
+        # Check if FAQ has a category relationship
+        faq_category_link = entry.get('fields', {}).get('faqCategory', {})
+        if not faq_category_link or 'sys' not in faq_category_link:
+            return None
+
+        category_id = faq_category_link['sys']['id']
+
+        # Find the category in included entries
+        for included in included_entries:
+            if (included.get('sys', {}).get('id') == category_id and
+                included.get('sys', {}).get('type') == 'Entry'):
+
+                category_fields = included.get('fields', {})
+                # Prefer slug, then frontendUrl, then slugify title
+                slug = category_fields.get('slug')
+                if slug:
+                    return slug
+
+                frontend_url = category_fields.get('frontendUrl')
+                if frontend_url:
+                    # Extract slug from frontendUrl if it follows pattern /garden-guide/{slug}/faqs
+                    if frontend_url.startswith('/garden-guide/') and frontend_url.endswith('/faqs'):
+                        return frontend_url.split('/')[2]
+
+                # Fallback: slugify the title
+                title = category_fields.get('title', '')
+                if title:
+                    return title.lower().replace(' ', '-').replace('/', '-')
+
+        return None
+
     def get_all_faq_entries(self, max_entries: Optional[int] = None) -> List[Dict]:
         """Get all FAQ entries with pagination, excluding archived ones"""
         all_entries = []
+        all_included = []
         archived_count = 0
         skip = 0
         limit = 100
@@ -93,6 +127,8 @@ class FAQSyncManager:
                 break
 
             entries = data['items']
+            included = data.get('includes', {}).get('Entry', [])
+            all_included.extend(included)
 
             # Filter out archived entries
             active_entries = []
@@ -102,6 +138,9 @@ class FAQSyncManager:
                     faq_title = entry.get('fields', {}).get('title', 'Untitled')
                     print(f"   🗄️  Skipping archived FAQ: {faq_title}")
                 else:
+                    # Add category info to entry for later processing
+                    category_slug = self.get_faq_category_slug(entry, all_included)
+                    entry['_category_slug'] = category_slug
                     active_entries.append(entry)
 
             all_entries.extend(active_entries)
@@ -125,13 +164,20 @@ class FAQSyncManager:
         print(f"✅ Total active FAQ entries found: {len(all_entries)}")
         return all_entries
 
-    def submit_faq_to_magento(self, entry_id: str, retry_count: int = 0) -> Dict:
-        """Submit a single FAQ to Magento via Express server"""
-        url = f'{EXPRESS_SERVER_URL}/render-and-submit-faq/{entry_id}'
-        
+    def submit_faq_to_magento(self, category_slug: str, faq_slug: str, entry_id: str, retry_count: int = 0) -> Dict:
+        """Submit a single FAQ to Magento via Express server using new URL structure"""
+
+        # Try new category-based URL structure first
+        if category_slug and faq_slug:
+            url = f'{EXPRESS_SERVER_URL}/render-and-submit-garden-guide/{category_slug}/faqs/{faq_slug}'
+        else:
+            # Fallback to legacy URL for FAQs without proper categories
+            url = f'{EXPRESS_SERVER_URL}/render-and-submit-faq/{entry_id}'
+            print(f"   ⚠️  Using legacy URL (no category info available)")
+
         try:
-            response = requests.post(url, timeout=30)
-            
+            response = requests.post(url, timeout=60)  # Increased timeout for complex FAQs
+
             if response.status_code == 200:
                 return response.json()
             else:
@@ -141,13 +187,13 @@ class FAQSyncManager:
                     'error': error_data.get('error', f'HTTP {response.status_code}'),
                     'status_code': response.status_code
                 }
-                
+
         except requests.RequestException as e:
             if retry_count < MAX_RETRIES:
                 print(f"   ⚠️  Request failed, retrying in {RATE_LIMIT_DELAY}s... (attempt {retry_count + 1}/{MAX_RETRIES})")
                 time.sleep(RATE_LIMIT_DELAY)
-                return self.submit_faq_to_magento(entry_id, retry_count + 1)
-            
+                return self.submit_faq_to_magento(category_slug, faq_slug, entry_id, retry_count + 1)
+
             return {
                 'success': False,
                 'error': str(e),
@@ -159,32 +205,53 @@ class FAQSyncManager:
         for entry in entries:
             entry_id = entry['sys']['id']
             title = entry.get('fields', {}).get('title', 'Unknown FAQ')
-            
+            category_slug = entry.get('_category_slug')
+            faq_slug = entry.get('fields', {}).get('slug')
+
             print(f"🔄 Processing FAQ: {title[:60]}{'...' if len(title) > 60 else ''}")
             print(f"   Entry ID: {entry_id}")
-            
+            if category_slug:
+                print(f"   Category: {category_slug}")
+                if faq_slug:
+                    print(f"   FAQ Slug: {faq_slug}")
+                    print(f"   URL: /garden-guide/{category_slug}/faqs/{faq_slug}")
+                else:
+                    print(f"   ⚠️  No FAQ slug found, using entry ID")
+                    faq_slug = entry_id.lower()
+            else:
+                print(f"   ⚠️  No category found, using legacy submission")
+
             # Submit to Magento
-            result = self.submit_faq_to_magento(entry_id)
-            
+            result = self.submit_faq_to_magento(category_slug, faq_slug, entry_id)
+
             self.stats['total_processed'] += 1
-            
+
             if result.get('success'):
                 self.stats['successful_imports'] += 1
+                # Check if response has magento info (new format) or legacy format
                 magento_info = result.get('magento', {})
+                if magento_info:
+                    identifier = magento_info.get('identifier', 'N/A')
+                else:
+                    # Legacy format might have different structure
+                    identifier = result.get('url', 'N/A')
+
                 print(f"   ✅ {result.get('message', 'Success')}")
-                print(f"   📝 Magento identifier: {magento_info.get('identifier', 'N/A')}")
+                print(f"   📝 Magento identifier: {identifier}")
             else:
                 self.stats['failed_imports'] += 1
                 error_msg = result.get('error', 'Unknown error')
                 print(f"   ❌ Failed: {error_msg}")
-                
+
                 self.stats['errors'].append({
                     'entry_id': entry_id,
                     'title': title,
+                    'category_slug': category_slug,
+                    'faq_slug': faq_slug,
                     'error': error_msg,
                     'timestamp': datetime.now().isoformat()
                 })
-            
+
             # Rate limiting
             print(f"   ⏳ Waiting {RATE_LIMIT_DELAY}s...")
             time.sleep(RATE_LIMIT_DELAY)

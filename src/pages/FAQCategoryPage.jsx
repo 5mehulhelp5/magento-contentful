@@ -9,33 +9,22 @@ const FAQCategoryPage = ({
   allCategories = [],
   currentCategoryId = null,
 }) => {
-  const { title, description } = categoryData?.fields || {};
+  const { title, description, slug } = categoryData?.fields || {};
 
-  // Create breadcrumb path from category title (same logic as CategoryListPage)
-  const createBreadcrumbs = (categoryTitle) => {
-    if (!categoryTitle) return [];
-    return categoryTitle.split(" / ").map((part, index, array) => ({
-      name: part,
-      isLast: index === array.length - 1,
-    }));
-  };
+  // Use the direct slug from FAQ category data, with fallback for legacy support
+  const categorySlug = slug || slugifyCategory(title || "");
 
-  const breadcrumbs = createBreadcrumbs(title);
-
-  // Helper function to slugify category names
+  // Helper function to slugify category names (fallback for legacy support)
   function slugifyCategory(input) {
+    if (!input) return "";
     return input.trim().toLowerCase().replace(/\s+/g, "-");
   }
 
-  // Create header breadcrumbs (different format for Header component)
+  // Create header breadcrumbs for FAQ categories (simpler structure)
   const headerBreadcrumbs = [
     { name: "Home", href: "/" },
     { name: "Garden Guide", href: "/garden-guide" },
-    ...breadcrumbs.slice(0, -1).map(crumb => ({
-      name: crumb.name,
-      href: `/garden-guide/${slugifyCategory(crumb.name)}`
-    })),
-    { name: `${breadcrumbs[breadcrumbs.length - 1]?.name}: FAQs` } // Current page (no href)
+    { name: `${title}: FAQs` } // Current page (no href)
   ];
 
   return (
@@ -44,7 +33,7 @@ const FAQCategoryPage = ({
       <Header
         key="main-header"
         breadcrumbs={headerBreadcrumbs}
-        currentPath={`/garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "")}/faqs`}
+        currentPath={`/garden-guide/${categorySlug}/faqs`}
       />
 
       {/* Header section */}
@@ -53,7 +42,7 @@ const FAQCategoryPage = ({
           {/* Page title */}
           <div key="title-section" className="page-title-section">
             <h1 key="title" className="page-title">
-              {breadcrumbs[breadcrumbs.length - 1]?.name || "Category"}: FAQs
+              {title || "Category"}: FAQs
             </h1>
           </div>
         </div>
@@ -87,8 +76,7 @@ const FAQCategoryPage = ({
             {faqs.map((faq, faqIndex) => {
               const faqTitle = faq.fields?.title || "Untitled FAQ";
               const faqSlug = faq.fields?.slug || faq.sys?.id;
-              const categorySlug = slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "");
-              // Always use the new garden-guide URL structure, ignore legacy frontendUrl
+              // Use the direct category slug from FAQ category data
               const faqUrl = `garden-guide/${categorySlug}/faqs/${faqSlug}`;
 
               return (
