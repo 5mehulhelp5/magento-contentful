@@ -78,6 +78,7 @@ const RecipeCategoryPage = ({
             key="category-sidebar"
             categories={categoriesWithRecipes}
             currentCategoryId="7kq3Zq7HxhhfV2kFLkWz8u"
+            currentPath="/garden-guide/harvest-recipes"
           />
 
           {/* Recipes section */}

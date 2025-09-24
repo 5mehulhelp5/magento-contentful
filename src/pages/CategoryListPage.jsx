@@ -11,6 +11,7 @@ const CategoryListPage = ({
   currentCategoryId = null,
 }) => {
   const { title } = categoryData?.fields || {};
+  const { displayTitle } = categoryData?.fields || {};
 
   // Create breadcrumb path from category title
   const createBreadcrumbs = (categoryTitle) => {
@@ -21,17 +22,19 @@ const CategoryListPage = ({
     }));
   };
 
+  console.log(displayTitle);
+
   const breadcrumbs = createBreadcrumbs(title);
 
   // Create header breadcrumbs (different format for Header component)
   const headerBreadcrumbs = [
     { name: "Home", href: "/" },
     { name: "Garden Guide", href: "/garden-guide" },
-    ...breadcrumbs.slice(0, -1).map(crumb => ({
+    ...breadcrumbs.slice(0, -1).map((crumb) => ({
       name: crumb.name,
-      href: `/garden-guide/${slugifyCategory(crumb.name)}`
+      href: `/garden-guide/${slugifyCategory(crumb.name)}`,
     })),
-    { name: breadcrumbs[breadcrumbs.length - 1]?.name } // Current page (no href)
+    { name: breadcrumbs[breadcrumbs.length - 1]?.name }, // Current page (no href)
   ];
 
   // Infinite scroll configuration
@@ -58,7 +61,9 @@ const CategoryListPage = ({
       <Header
         key="main-header"
         breadcrumbs={headerBreadcrumbs}
-        currentPath={`/garden-guide/${slugifyCategory(breadcrumbs[breadcrumbs.length - 1]?.name || "")}`}
+        currentPath={`/garden-guide/${slugifyCategory(
+          breadcrumbs[breadcrumbs.length - 1]?.name || ""
+        )}`}
       />
       {/* Header section */}
       <div key="header" className="page-header">
@@ -77,9 +82,7 @@ const CategoryListPage = ({
                     <span
                       key="name"
                       className={
-                        crumb.isLast
-                          ? "breadcrumb-current"
-                          : "breadcrumb-link"
+                        crumb.isLast ? "breadcrumb-current" : "breadcrumb-link"
                       }
                     >
                       {crumb.name}
@@ -93,7 +96,10 @@ const CategoryListPage = ({
           {/* Category title */}
           <div key="title-section" className="page-title-section">
             <h1 key="title" className="page-title">
-              Garden Guide: {breadcrumbs[breadcrumbs.length - 1].name || "Category"}
+              Garden Guide:{" "}
+              {displayTitle ||
+                breadcrumbs[breadcrumbs.length - 1].name ||
+                "Category"}
             </h1>
           </div>
         </div>
@@ -107,6 +113,9 @@ const CategoryListPage = ({
             key="category-sidebar"
             categories={allCategories}
             currentCategoryId={currentCategoryId}
+            currentPath={`/garden-guide/${slugifyCategory(
+              breadcrumbs[breadcrumbs.length - 1]?.name || ""
+            )}`}
           />
 
           {/* Articles section */}
@@ -122,8 +131,8 @@ const CategoryListPage = ({
                     id="current-article-count"
                   >
                     {initialArticles.length.toString()}
-                  </span>
-                  {" "}of{" "}
+                  </span>{" "}
+                  of{" "}
                   <span key="total-count" className="results-number">
                     {totalCount.toString()}
                   </span>

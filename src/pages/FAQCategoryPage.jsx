@@ -56,6 +56,7 @@ const FAQCategoryPage = ({
             key="category-sidebar"
             categories={allCategories}
             currentCategoryId={currentCategoryId}
+            currentPath={`/garden-guide/${categorySlug}/faqs`}
           />
 
           {/* FAQ content section */}

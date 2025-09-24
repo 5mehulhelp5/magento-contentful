@@ -4,9 +4,10 @@ const React = require("react");
  * CategorySidebar - Collapsible category navigation sidebar
  * @param {Array} categories - Array of all categories with parent-child relationships
  * @param {string} currentCategoryId - ID of currently active category for highlighting
+ * @param {string} currentPath - Current page path for URL-based highlighting fallback
  * @returns {Object} React element for the category sidebar
  */
-const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
+const CategorySidebar = ({ categories = [], currentCategoryId = null, currentPath = null }) => {
   // Build hierarchical structure from flat category array
   const buildCategoryHierarchy = (categories) => {
     const topLevelCategories = [];
@@ -17,6 +18,7 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
       const categoryData = {
         id: category.sys.id,
         title: category.fields.title,
+        displayTitle: category.fields.displayTitle,
         parent: category.fields.parent?.sys?.id || null,
         children: [],
       };
@@ -49,25 +51,55 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
 
   const hierarchy = buildCategoryHierarchy(categories);
 
+  // Helper function to normalize URLs for comparison (remove leading/trailing slashes, normalize casing)
+  const normalizeUrl = (url) => {
+    if (!url) return '';
+    return url.replace(/^\/+|\/+$/g, '').toLowerCase();
+  };
+
+  // Helper function to check if a category matches the current path via frontendUrl
+  const categoryMatchesCurrentPath = (categoryId) => {
+    if (!currentPath || !categoryId) return false;
+
+    const category = categories.find((cat) => cat.sys.id === categoryId);
+    if (!category || !category.fields.frontendUrl) return false;
+
+    const categoryUrl = normalizeUrl(category.fields.frontendUrl);
+    const normalizedCurrentPath = normalizeUrl(currentPath);
+
+    return categoryUrl === normalizedCurrentPath;
+  };
+
+  // Enhanced function to check if a category is currently active (ID match OR URL match)
+  const isCategoryActive = (categoryId) => {
+    if (!categoryId) return false;
+    // First try ID match
+    if (categoryId === currentCategoryId) return true;
+    // Fallback to URL match
+    return categoryMatchesCurrentPath(categoryId);
+  };
+
   // Helper function to determine which top-level category should be expanded
   const shouldExpandTopLevel = (topLevelCategory) => {
-    if (!currentCategoryId) return false;
-    
-    // If the current category is this top-level category
-    if (topLevelCategory.id === currentCategoryId) return true;
-    
-    // If the current category is a child of this top-level category
-    return topLevelCategory.children.some(child => child.id === currentCategoryId);
+    if (!currentCategoryId && !currentPath) return false;
+
+    // If the current category is this top-level category (ID or URL match)
+    if (isCategoryActive(topLevelCategory.id)) return true;
+
+    // If the current category is a child of this top-level category (ID or URL match)
+    return topLevelCategory.children.some(
+      (child) => isCategoryActive(child.id)
+    );
   };
 
   // Helper function to create category link URL using production format
   const createCategoryUrl = (categoryId) => {
     // Find the category data by ID
-    const category = categories.find(cat => cat.sys.id === categoryId);
+    const category = categories.find((cat) => cat.sys.id === categoryId);
     if (!category || !category.fields.title) {
       return `/preview/category/${categoryId}`; // Fallback to preview URL
     }
-    
+
     // Use the same logic as magentoAPI.js for production URLs
     function formatCategoryPath(input) {
       return input
@@ -76,7 +108,7 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
         .map((part) => part.trim().replace(/\s+/g, "-"))
         .join("/");
     }
-    
+
     const formattedPath = formatCategoryPath(category.fields.title);
     return `/garden-guide/${formattedPath}`;
   };
@@ -120,17 +152,13 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
       </div>
 
       {/* Category navigation */}
-      <nav
-        key="category-nav"
-        className="category-nav"
-        id="category-navigation"
-      >
+      <nav key="category-nav" className="category-nav" id="category-navigation">
         <ul className="category-list">
           {hierarchy.map((topLevelCategory, index) => (
             <li
               key={topLevelCategory.id}
               className={`category-item top-level ${
-                topLevelCategory.id === currentCategoryId ? "active" : ""
+                isCategoryActive(topLevelCategory.id) ? "active" : ""
               }`}
             >
               {/* Top-level category header with toggle */}
@@ -145,14 +173,16 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
                   href={createCategoryUrl(topLevelCategory.id)}
                   className="category-link"
                 >
-                  {topLevelCategory.title}
+                  {topLevelCategory.displayTitle || topLevelCategory.title}
                 </a>
                 {/* Toggle button for collapsible behavior */}
                 {topLevelCategory.children.length > 0 && (
                   <button
                     key="toggle-button"
                     className="category-toggle"
-                    aria-expanded={shouldExpandTopLevel(topLevelCategory) ? "true" : "false"}
+                    aria-expanded={
+                      shouldExpandTopLevel(topLevelCategory) ? "true" : "false"
+                    }
                     aria-controls={`subcategories-${slugifyTitle(
                       topLevelCategory.title
                     )}`}
@@ -180,19 +210,21 @@ const CategorySidebar = ({ categories = [], currentCategoryId = null }) => {
               {topLevelCategory.children.length > 0 && (
                 <ul
                   key="subcategories"
-                  id={`subcategories-${slugifyTitle(
-                    topLevelCategory.title
-                  )}`}
+                  id={`subcategories-${slugifyTitle(topLevelCategory.title)}`}
                   className={`subcategory-list ${
-                    shouldExpandTopLevel(topLevelCategory) ? "expanded" : "collapsed"
+                    shouldExpandTopLevel(topLevelCategory)
+                      ? "expanded"
+                      : "collapsed"
                   }`}
-                  aria-expanded={shouldExpandTopLevel(topLevelCategory) ? "true" : "false"}
+                  aria-expanded={
+                    shouldExpandTopLevel(topLevelCategory) ? "true" : "false"
+                  }
                 >
                   {topLevelCategory.children.map((subcategory) => (
                     <li
                       key={subcategory.id}
                       className={`subcategory-item ${
-                        subcategory.id === currentCategoryId ? "active" : ""
+                        isCategoryActive(subcategory.id) ? "active" : ""
                       }`}
                     >
                       <a
