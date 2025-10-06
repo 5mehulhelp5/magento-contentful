@@ -70,7 +70,7 @@ class ContentfulMagentoSync:
                 'content_type': 'article',  # Only fetch articles
                 'limit': limit,
                 'skip': skip,
-                'select': 'sys.id,fields.title,metadata.tags'  # Include metadata for archived check
+                'include': 2  # Include linked entries (like mainCategory) up to 2 levels deep
             }
 
             try:

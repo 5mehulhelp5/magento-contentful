@@ -9,19 +9,22 @@ const ArticleCard = require("./ArticleCard.jsx");
  * @param {Boolean} isEven - Whether this is an even-numbered section (for background color)
  */
 const CategorySection = ({ category, articles = [], isEven = false }) => {
+  const displayTitle = category?.fields?.displayTitle;
   const categoryTitle = category?.fields?.title || "Category";
   const categoryDescription = category?.fields?.description || "";
-  
+
   // Create a "View All" link for the category
-  const viewAllLink = `/garden-guide/${categoryTitle.toLowerCase().replace(/\s+/g, "-")}`;
-  
+  const viewAllLink = `/garden-guide/${categoryTitle
+    .toLowerCase()
+    .replace(/\s+/g, "-")}`;
+
   return (
-    <div className={`article-row-three ${isEven ? 'even' : 'odd'}`}>
+    <div className={`article-row-three ${isEven ? "even" : "odd"}`}>
       <div className="row-full-width-inner">
         {/* Category header section */}
         <div key="category-header" className="gg-row-columns-header">
           <div className="header-content">
-            <h3 key="category-title">{categoryTitle}</h3>
+            <h3 key="category-title">{displayTitle || categoryTitle}</h3>
             {categoryDescription && (
               <p key="category-description">{categoryDescription}</p>
             )}
@@ -31,7 +34,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
               <div data-content-type="button-item">
                 <a className="view-all-button" href={viewAllLink}>
                   <span key="button-text">
-                    View All {categoryTitle} Articles
+                    View All {displayTitle || categoryTitle} Articles
                   </span>
                   <svg
                     key="chevron-right"
@@ -68,10 +71,7 @@ const CategorySection = ({ category, articles = [], isEven = false }) => {
               });
 
               return (
-                <div
-                  key={article.sys?.id || index}
-                  className="article-column"
-                >
+                <div key={article.sys?.id || index} className="article-column">
                   <div dangerouslySetInnerHTML={{ __html: articleHTML }} />
                 </div>
               );

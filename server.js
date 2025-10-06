@@ -1525,161 +1525,171 @@ app.get("/preview/garden-guide/:categorySlug/faqs", async (req, res) => {
 
 // Individual FAQ routes using new garden-guide URL structure
 // Preview individual FAQ by category and FAQ slugs
-app.get("/preview/garden-guide/:categorySlug/faqs/:faqSlug", async (req, res) => {
-  try {
-    const { categorySlug, faqSlug } = req.params;
+app.get(
+  "/preview/garden-guide/:categorySlug/faqs/:faqSlug",
+  async (req, res) => {
+    try {
+      const { categorySlug, faqSlug } = req.params;
 
-    // First, find the FAQ by slug
-    const faqEntries = await contentfulClient.getEntries({
-      content_type: "faq",
-      "fields.slug": faqSlug,
-      limit: 1,
-    });
+      // First, find the FAQ by slug
+      const faqEntries = await contentfulClient.getEntries({
+        content_type: "faq",
+        "fields.slug": faqSlug,
+        limit: 1,
+      });
 
-    if (faqEntries.items.length === 0) {
-      return res.status(404).json({
-        error: "FAQ not found",
-        faqSlug: faqSlug,
+      if (faqEntries.items.length === 0) {
+        return res.status(404).json({
+          error: "FAQ not found",
+          faqSlug: faqSlug,
+        });
+      }
+
+      const faqEntry = faqEntries.items[0];
+
+      // Verify the FAQ belongs to the correct category
+      const categoryData = await getFAQCategoryBySlug(categorySlug);
+      if (!categoryData) {
+        return res.status(404).json({
+          error: "FAQ category not found",
+          categorySlug: categorySlug,
+        });
+      }
+
+      // Check if the FAQ is linked to this category
+      const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
+      if (faqCategoryId !== categoryData.sys.id) {
+        return res.status(404).json({
+          error: "FAQ does not belong to this category",
+          faqSlug: faqSlug,
+          categorySlug: categorySlug,
+        });
+      }
+
+      console.log(
+        `Previewing FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`
+      );
+
+      const FAQPage = require("./src/pages/FAQPage.jsx").default;
+      const { html } = await renderPageToStatic(
+        FAQPage,
+        {
+          data: faqEntry.fields,
+          title: faqEntry.fields.title,
+          categoryData: categoryData,
+        },
+        { inlineCSS: true }
+      );
+
+      res.send(html);
+    } catch (error) {
+      console.error("Error previewing individual FAQ:", error);
+      res.status(500).json({
+        error: "Failed to preview FAQ",
+        details: error.message,
       });
     }
-
-    const faqEntry = faqEntries.items[0];
-
-    // Verify the FAQ belongs to the correct category
-    const categoryData = await getFAQCategoryBySlug(categorySlug);
-    if (!categoryData) {
-      return res.status(404).json({
-        error: "FAQ category not found",
-        categorySlug: categorySlug,
-      });
-    }
-
-    // Check if the FAQ is linked to this category
-    const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
-    if (faqCategoryId !== categoryData.sys.id) {
-      return res.status(404).json({
-        error: "FAQ does not belong to this category",
-        faqSlug: faqSlug,
-        categorySlug: categorySlug,
-      });
-    }
-
-    console.log(`Previewing FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`);
-
-    const FAQPage = require("./src/pages/FAQPage.jsx").default;
-    const { html } = await renderPageToStatic(
-      FAQPage,
-      {
-        data: faqEntry.fields,
-        title: faqEntry.fields.title,
-        categoryData: categoryData,
-      },
-      { inlineCSS: true }
-    );
-
-    res.send(html);
-  } catch (error) {
-    console.error("Error previewing individual FAQ:", error);
-    res.status(500).json({
-      error: "Failed to preview FAQ",
-      details: error.message,
-    });
   }
-});
+);
 
 // Render and submit individual FAQ by category and FAQ slugs
-app.post("/render-and-submit-garden-guide/:categorySlug/faqs/:faqSlug", async (req, res) => {
-  try {
-    const { categorySlug, faqSlug } = req.params;
+app.post(
+  "/render-and-submit-garden-guide/:categorySlug/faqs/:faqSlug",
+  async (req, res) => {
+    try {
+      const { categorySlug, faqSlug } = req.params;
 
-    // First, find the FAQ by slug
-    const faqEntries = await contentfulClient.getEntries({
-      content_type: "faq",
-      "fields.slug": faqSlug,
-      limit: 1,
-    });
-
-    if (faqEntries.items.length === 0) {
-      return res.status(404).json({
-        error: "FAQ not found",
-        faqSlug: faqSlug,
+      // First, find the FAQ by slug
+      const faqEntries = await contentfulClient.getEntries({
+        content_type: "faq",
+        "fields.slug": faqSlug,
+        limit: 1,
       });
-    }
 
-    const faqEntry = faqEntries.items[0];
+      if (faqEntries.items.length === 0) {
+        return res.status(404).json({
+          error: "FAQ not found",
+          faqSlug: faqSlug,
+        });
+      }
 
-    // Verify the FAQ belongs to the correct category
-    const categoryData = await getFAQCategoryBySlug(categorySlug);
-    if (!categoryData) {
-      return res.status(404).json({
-        error: "FAQ category not found",
-        categorySlug: categorySlug,
-      });
-    }
+      const faqEntry = faqEntries.items[0];
 
-    // Check if the FAQ is linked to this category
-    const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
-    if (faqCategoryId !== categoryData.sys.id) {
-      return res.status(404).json({
-        error: "FAQ does not belong to this category",
-        faqSlug: faqSlug,
-        categorySlug: categorySlug,
-      });
-    }
+      // Verify the FAQ belongs to the correct category
+      const categoryData = await getFAQCategoryBySlug(categorySlug);
+      if (!categoryData) {
+        return res.status(404).json({
+          error: "FAQ category not found",
+          categorySlug: categorySlug,
+        });
+      }
 
-    console.log(`Rendering and submitting FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`);
+      // Check if the FAQ is linked to this category
+      const faqCategoryId = faqEntry.fields?.faqCategory?.sys?.id;
+      if (faqCategoryId !== categoryData.sys.id) {
+        return res.status(404).json({
+          error: "FAQ does not belong to this category",
+          faqSlug: faqSlug,
+          categorySlug: categorySlug,
+        });
+      }
 
-    const FAQPage = require("./src/pages/FAQPage.jsx").default;
-    const { html } = await renderPageToStatic(
-      FAQPage,
-      {
-        data: faqEntry.fields,
-        title: faqEntry.fields.title,
-        categoryData: categoryData,
-      },
-      { inlineCSS: true }
-    );
+      console.log(
+        `Rendering and submitting FAQ: ${faqEntry.fields.title} in category: ${categoryData.fields.title}`
+      );
 
-    // Save to output directory
-    await fs.mkdir("./output", { recursive: true });
-    await fs.writeFile(`./output/faq-${categorySlug}-${faqSlug}.html`, html);
-
-    // Submit to Magento
-    const { submitFAQToMagento } = require("./src/utils/magentoAPI");
-    const magentoResult = await submitFAQToMagento(faqEntry, html);
-
-    if (magentoResult.success) {
-      res.json({
-        success: true,
-        message: `FAQ rendered and ${magentoResult.action} in Magento`,
-        faqSlug: faqSlug,
-        categorySlug: categorySlug,
-        title: faqEntry.fields.title,
-        magento: {
-          action: magentoResult.action,
-          identifier: magentoResult.identifier,
-          pageId: magentoResult.pageId,
+      const FAQPage = require("./src/pages/FAQPage.jsx").default;
+      const { html } = await renderPageToStatic(
+        FAQPage,
+        {
+          data: faqEntry.fields,
+          title: faqEntry.fields.title,
+          categoryData: categoryData,
         },
-        url: `/garden-guide/${categorySlug}/faqs/${faqSlug}`,
-      });
-    } else {
+        { inlineCSS: true }
+      );
+
+      // Save to output directory
+      await fs.mkdir("./output", { recursive: true });
+      await fs.writeFile(`./output/faq-${categorySlug}-${faqSlug}.html`, html);
+
+      // Submit to Magento
+      const { submitFAQToMagento } = require("./src/utils/magentoAPI");
+      const magentoResult = await submitFAQToMagento(faqEntry, html);
+
+      if (magentoResult.success) {
+        res.json({
+          success: true,
+          message: `FAQ rendered and ${magentoResult.action} in Magento`,
+          faqSlug: faqSlug,
+          categorySlug: categorySlug,
+          title: faqEntry.fields.title,
+          magento: {
+            action: magentoResult.action,
+            identifier: magentoResult.identifier,
+            pageId: magentoResult.pageId,
+          },
+          url: `/garden-guide/${categorySlug}/faqs/${faqSlug}`,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "FAQ rendered but failed to submit to Magento",
+          faqSlug: faqSlug,
+          categorySlug: categorySlug,
+          title: faqEntry.fields.title,
+          error: magentoResult.error,
+        });
+      }
+    } catch (error) {
+      console.error("Error rendering and submitting individual FAQ:", error);
       res.status(500).json({
-        success: false,
-        message: "FAQ rendered but failed to submit to Magento",
-        faqSlug: faqSlug,
-        categorySlug: categorySlug,
-        title: faqEntry.fields.title,
-        error: magentoResult.error,
+        error: "Failed to render and submit FAQ",
+        details: error.message,
       });
     }
-  } catch (error) {
-    console.error("Error rendering and submitting individual FAQ:", error);
-    res.status(500).json({
-      error: "Failed to render and submit FAQ",
-      details: error.message,
-    });
   }
-});
+);
 
 // Legacy FAQ Category routes (keeping for backward compatibility)
 // Preview route for all FAQ categories
@@ -1872,232 +1882,6 @@ app.post(
   }
 );
 
-// Legacy FAQ Category routes (keeping for backward compatibility)
-// Render all FAQ categories and submit to Magento
-app.post("/render-and-submit-faq-category", async (req, res) => {
-  try {
-    // Fetch all FAQs
-    const { items: allFAQs, total } = await getAllFAQs();
-    const faqs = allFAQs;
-
-    // Create default category data
-    const categoryData = {
-      fields: {
-        title: "All FAQs",
-        description: "Browse all frequently asked questions.",
-      },
-    };
-
-    // Fetch all article categories for sidebar (not FAQ categories)
-    const { items: allCategories } = await contentfulClient.getEntries({
-      content_type: "category",
-      limit: 1000, // Get all categories
-    });
-
-    const FAQCategoryPage = require("./src/pages/FAQCategoryPage.jsx").default;
-    const { html } = await renderPageToStatic(FAQCategoryPage, {
-      categoryData,
-      faqs,
-      totalCount: faqs.length,
-      allCategories,
-      currentCategoryId: "all",
-    });
-
-    // Save to output directory
-    await fs.mkdir("./output", { recursive: true });
-    await fs.writeFile(`./output/faq-category-all.html`, html);
-
-    // Submit to Magento using FAQ category submission
-    const { submitFAQCategoryToMagento } = require("./src/utils/magentoAPI");
-    const magentoResult = await submitFAQCategoryToMagento(categoryData, html);
-
-    if (magentoResult.success) {
-      res.json({
-        success: true,
-        message: `FAQ category page rendered and ${magentoResult.action} in Magento`,
-        entryId: "all-faqs",
-        title: categoryData.fields.title,
-        magentoId: magentoResult.pageId,
-        action: magentoResult.action,
-        totalFAQs: faqs.length,
-      });
-    } else {
-      console.error(
-        "Failed to submit FAQ category to Magento:",
-        magentoResult.error
-      );
-      res.status(500).json({
-        success: false,
-        error: "Failed to submit to Magento",
-        details: magentoResult.error,
-        message: "FAQ category page rendered but failed to submit to Magento",
-        entryId: "all-faqs",
-        title: categoryData.fields.title,
-        totalFAQs: faqs.length,
-      });
-    }
-  } catch (error) {
-    console.error("Error rendering and submitting FAQ category:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Render specific FAQ category and submit to Magento
-app.post("/render-and-submit-faq-category/:categoryName", async (req, res) => {
-  try {
-    const { categoryName } = req.params;
-
-    let faqs, allCategories, categoryData;
-
-    if (categoryName === "all") {
-      // Fetch all FAQs
-      const { items: allFAQs, total } = await getAllFAQs();
-      faqs = allFAQs;
-
-      // Create default category data
-      categoryData = {
-        fields: {
-          title: "All FAQs",
-          description: "Browse all frequently asked questions.",
-        },
-      };
-    } else {
-      // Fetch FAQs for specific category
-      const decodedCategoryName = decodeURIComponent(
-        categoryName.replace(/-/g, " ")
-      );
-      const { items: categoryFAQs, total } = await getFAQsByCategory(
-        decodedCategoryName
-      );
-      faqs = categoryFAQs;
-
-      // Create category data object
-      categoryData = {
-        fields: {
-          title: `${decodedCategoryName} FAQs`,
-          description: `Frequently asked questions about ${decodedCategoryName.toLowerCase()}.`,
-        },
-      };
-    }
-
-    // Fetch all categories for grouping
-    allCategories = await getAllFAQCategories();
-
-    const FAQCategoryPage = require("./src/pages/FAQCategoryPage.jsx").default;
-    const { html } = await renderPageToStatic(FAQCategoryPage, {
-      categoryData,
-      faqs,
-      totalCount: faqs.length,
-      allCategories,
-      currentCategoryId: categoryName,
-    });
-
-    // Save to output directory
-    await fs.mkdir("./output", { recursive: true });
-    const fileName =
-      categoryName === "all"
-        ? "faq-category-all.html"
-        : `faq-category-${categoryName}.html`;
-    await fs.writeFile(`./output/${fileName}`, html);
-
-    // Submit to Magento using FAQ category submission
-    const { submitFAQCategoryToMagento } = require("./src/utils/magentoAPI");
-    const magentoResult = await submitFAQCategoryToMagento(categoryData, html);
-
-    if (magentoResult.success) {
-      res.json({
-        success: true,
-        message: `FAQ category page rendered and ${magentoResult.action} in Magento`,
-        entryId: categoryName,
-        title: categoryData.fields.title,
-        magentoId: magentoResult.pageId,
-        action: magentoResult.action,
-        totalFAQs: faqs.length,
-      });
-    } else {
-      console.error(
-        "Failed to submit FAQ category to Magento:",
-        magentoResult.error
-      );
-      res.status(500).json({
-        success: false,
-        error: "Failed to submit to Magento",
-        details: magentoResult.error,
-        message: "FAQ category page rendered but failed to submit to Magento",
-        entryId: categoryName,
-        title: categoryData.fields.title,
-        totalFAQs: faqs.length,
-      });
-    }
-  } catch (error) {
-    console.error("Error rendering and submitting FAQ category:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Webhook for Contentful
-app.post("/webhook/contentful", async (req, res) => {
-  try {
-    const contentfulTopic = req.headers["x-contentful-topic"];
-
-    // Ensure it's an entry publish event
-    if (contentfulTopic === "ContentManagement.Entry.publish") {
-      const entryId = req.body?.sys?.id;
-
-      if (!entryId) {
-        return res
-          .status(400)
-          .json({ error: "Missing entryId in webhook payload." });
-      }
-
-      // Trigger the Magento push logic
-      // We'll simulate a request to our own /render/article/:entryId/magento endpoint
-      // This is a simplified internal call, in a real app you might refactor the logic
-      // to be directly callable without simulating an HTTP request.
-      const internalReq = {
-        params: { entryId: entryId },
-        body: {}, // Webhook doesn't send body for this internal call
-      };
-      const internalRes = {
-        json: (data) => {
-          console.log("Magento push result:", data);
-          res.status(200).json({
-            success: true,
-            message: "Webhook processed",
-            magentoResult: data,
-          });
-        },
-        status: (code) => {
-          return {
-            json: (data) => {
-              console.error("Magento push error:", data);
-              res.status(code).json({
-                success: false,
-                message: "Webhook processing failed",
-                error: data,
-              });
-            },
-          };
-        },
-      };
-
-      // Call the Magento push handler
-      await app.post(
-        "/render/article/:entryId/magento",
-        internalReq,
-        internalRes
-      );
-    } else {
-      res
-        .status(200)
-        .json({ message: `Ignoring webhook topic: ${contentfulTopic}` });
-    }
-  } catch (error) {
-    console.error("Error processing Contentful webhook:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get("/api/entries", async (req, res) => {
   try {
     const entries = await contentfulClient.getEntries({
@@ -2175,157 +1959,6 @@ app.get("/", (req, res) => {
   `;
 
   res.send(instructions);
-});
-
-// Test route
-app.get("/test", async (req, res) => {
-  try {
-    const TestComponent = () =>
-      React.createElement(
-        "div",
-        {
-          className:
-            "bg-green-50 text-gray-900 px-8 py-8 rounded-lg max-w-4xl mx-auto mt-8",
-        },
-        [
-          React.createElement(
-            "h1",
-            { key: "title", className: "text-3xl font-medium mb-4" },
-            "Test Page"
-          ),
-          React.createElement(
-            "p",
-            { key: "content", className: "text-gray-700" },
-            "Express server with Contentful integration is working!"
-          ),
-        ]
-      );
-
-    const { html } = await renderPageToStatic(TestComponent, {
-      title: "Test Page",
-    });
-    res.send(html);
-  } catch (error) {
-    console.error("Error in test route:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Test OAuth generation
-app.get("/test-oauth", async (req, res) => {
-  try {
-    const { generateOAuthHeader } = require("./src/utils/magentoAuth");
-    const testUrl =
-      "https://mcstaging.burpee.com/rest/default/V1/store/storeConfigs";
-    const authHeader = generateOAuthHeader("GET", testUrl);
-
-    res.json({
-      url: testUrl,
-      authHeader: authHeader,
-      env: {
-        consumerKey: process.env.STAGING_MAGENTO_CONSUMER_KEY
-          ? "Set"
-          : "Not set",
-        consumerSecret: process.env.STAGING_MAGENTO_CONSUMER_SECRET
-          ? "Set"
-          : "Not set",
-        accessToken: process.env.STAGING_MAGENTO_ACCESS_TOKEN
-          ? "Set"
-          : "Not set",
-        tokenSecret: process.env.STAGING_MAGENTO_TOKEN_SECRET
-          ? "Set"
-          : "Not set",
-      },
-    });
-  } catch (error) {
-    console.error("Error testing OAuth:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Test Contentful management for categories
-app.get("/test-contentful-category/:categoryId", async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const ContentfulManagement = require("./src/utils/contentfulManagement");
-
-    if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN) {
-      return res.status(400).json({
-        error: "CONTENTFUL_MANAGEMENT_TOKEN not configured",
-      });
-    }
-
-    const contentfulMgmt = new ContentfulManagement();
-
-    // Test getting category
-    console.log(`Testing Contentful category management for: ${categoryId}`);
-    const category = await contentfulMgmt.getCategory(categoryId);
-
-    if (!category) {
-      return res.status(404).json({ error: "Category not found" });
-    }
-
-    // Check existing Magento ID
-    const existingMagentoId = await contentfulMgmt.getCategoryMagentoId(
-      categoryId
-    );
-
-    res.json({
-      success: true,
-      categoryId: categoryId,
-      category: {
-        title: category.fields?.title?.["en-US"] || "Untitled",
-        contentType: category.sys.contentType.sys.id,
-        existingMagentoId: existingMagentoId,
-      },
-      message: "Category management test successful",
-    });
-  } catch (error) {
-    console.error("Error testing Contentful category management:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Debug: Show what content would be sent to Magento
-app.get("/debug-category-content/:categoryId", async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-
-    // Fetch category data from Contentful
-    const categoryData = await getContentfulCategory(categoryId);
-
-    if (!categoryData) {
-      return res.status(404).json({ error: "Category not found" });
-    }
-
-    // Fetch articles for this category
-    const { items: articles, total } = await getCategoryArticles(categoryId);
-
-    const CategoryListPage =
-      require("./src/pages/CategoryListPage.jsx").default;
-    const { html } = await renderPageToStatic(CategoryListPage, {
-      categoryData,
-      articles,
-      totalCount: total,
-      title: `${categoryData.fields?.title || "Category"} - Articles`,
-    });
-
-    // Extract content as would be sent to Magento
-    const { extractBodyContentForMagento } = require("./src/utils/magentoAPI");
-    const magentoContent = extractBodyContentForMagento(html);
-
-    res.json({
-      success: true,
-      categoryId: categoryId,
-      title: categoryData.fields?.title,
-      fullHtmlLength: html.length,
-      magentoContentLength: magentoContent.length,
-      magentoContent: magentoContent.substring(0, 1000) + "...", // First 1000 chars
-    });
-  } catch (error) {
-    console.error("Error debugging category content:", error);
-    res.status(500).json({ error: error.message });
-  }
 });
 
 // Recipe Category Endpoints

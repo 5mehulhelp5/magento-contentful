@@ -425,35 +425,105 @@ const options = {
           ? `https:${asset.fields.file.url}`
           : asset.fields.file.url;
 
-        return (
-          <div style={{ margin: "2rem 0" }}>
-            <img
-              src={url}
-              alt={asset.fields.title || asset.fields.description || ""}
+        const contentType = asset.fields.file.contentType;
+        const fileSize = asset.fields.file.details?.size;
+
+        // Format file size to human-readable format
+        const formatFileSize = (bytes) => {
+          if (!bytes) return "";
+          if (bytes < 1024) return `${bytes} B`;
+          if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+          return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        };
+
+        // Render PDF as download link
+        if (contentType === "application/pdf") {
+          return (
+            <div
               style={{
+                margin: "2rem 0",
+                padding: "1.5rem",
+                backgroundColor: "#f0f9f0",
+                border: "2px solid #059669",
                 borderRadius: "0.5rem",
-                boxShadow:
-                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                margin: "0 auto",
-                display: "block",
-                maxWidth: "100%",
-                height: "auto",
               }}
-            />
-            {asset.fields.description && (
-              <p
+            >
+              <div
                 style={{
-                  fontSize: "0.875rem",
-                  color: "#6b7280",
-                  textAlign: "center",
-                  marginTop: "0.5rem",
+                  fontSize: "1.125rem",
+                  fontWeight: "600",
+                  color: "#111827",
+                  marginBottom: "0.25rem",
                 }}
               >
-                {asset.fields.description}
-              </p>
-            )}
-          </div>
-        );
+                {asset.fields.title || "PDF Document"}
+              </div>
+              {fileSize && (
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#6b7280",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  {formatFileSize(fileSize)}
+                </div>
+              )}
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  padding: "0.5rem 1rem",
+                  backgroundColor: "#059669",
+                  color: "white",
+                  textDecoration: "none",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  transition: "background-color 0.2s",
+                }}
+                aria-label={`Download ${asset.fields.title || "PDF document"}`}
+              >
+                Download PDF
+              </a>
+            </div>
+          );
+        }
+
+        // Render images as before
+        if (contentType?.startsWith("image/")) {
+          return (
+            <div style={{ margin: "2rem 0" }}>
+              <img
+                src={url}
+                alt={asset.fields.title || asset.fields.description || ""}
+                style={{
+                  borderRadius: "0.5rem",
+                  boxShadow:
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  margin: "0 auto",
+                  display: "block",
+                  maxWidth: "100%",
+                  height: "auto",
+                }}
+              />
+              {asset.fields.description && (
+                <p
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#6b7280",
+                    textAlign: "center",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  {asset.fields.description}
+                </p>
+              )}
+            </div>
+          );
+        }
       }
       return null;
     },

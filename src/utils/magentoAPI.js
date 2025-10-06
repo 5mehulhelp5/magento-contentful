@@ -110,7 +110,7 @@ async function createOrUpdateCmsPage(
       meta_title: pageData.meta_title || pageData.title,
       meta_keywords: pageData.meta_keywords || "",
       meta_description: pageData.meta_description || "",
-      content_heading: pageData.meta_title || pageData.title,
+      content_heading: pageData.meta_description || pageData.title,
       content: pageData.content || "",
       creation_time:
         pageData.creation_time ||
@@ -289,9 +289,8 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
     basePath = "garden-guide/" + slugify(categoryTitle);
   }
 
-  const frontendUrl = existingFrontendUrl
-    ? existingFrontendUrl
-    : basePath + "/" + articleSlug;
+  // Always regenerate URL based on current category data to ensure it's correct
+  const frontendUrl = basePath + "/" + articleSlug;
 
   console.log("NEW FRONTEND URL");
   console.log(frontendUrl);
@@ -410,8 +409,8 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
       }
     }
 
-    // Save frontend URL back to Contentful if we generated a new one
-    if (!existingFrontendUrl) {
+    // Always save the regenerated frontend URL back to Contentful to ensure it's current
+    if (!existingFrontendUrl || existingFrontendUrl !== frontendUrl) {
       try {
         const frontendUrlUpdateResult =
           await contentfulMgmt.updateEntryWithFrontendUrl(
@@ -421,7 +420,7 @@ async function submitToMagento(contentfulEntry, renderedHtml) {
 
         if (frontendUrlUpdateResult.success) {
           console.log(
-            `✅ Saved generated frontend URL ${frontendUrl} back to Contentful entry ${contentfulEntry.sys.id}`
+            `✅ Saved ${existingFrontendUrl ? 'updated' : 'generated'} frontend URL ${frontendUrl} back to Contentful entry ${contentfulEntry.sys.id}`
           );
         } else {
           console.log(
@@ -780,17 +779,24 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
   let categorySlug = "general"; // Default fallback
 
   // Try to get category slug from new faqCategory relationship
-  if (contentfulEntry.fields.faqCategory && contentfulEntry.fields.faqCategory.sys && contentfulEntry.fields.faqCategory.sys.id) {
+  if (
+    contentfulEntry.fields.faqCategory &&
+    contentfulEntry.fields.faqCategory.sys &&
+    contentfulEntry.fields.faqCategory.sys.id
+  ) {
     try {
       // Fetch the FAQ category to get its slug
-      const { createClient } = require('contentful');
+      const { createClient } = require("contentful");
       const contentfulClient = createClient({
         space: process.env.CONTENTFUL_SPACE_ID,
         accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
       });
 
-      const faqCategory = await contentfulClient.getEntry(contentfulEntry.fields.faqCategory.sys.id);
-      const faqCategorySlug = faqCategory.fields?.slug || faqCategory.fields?.frontendUrl;
+      const faqCategory = await contentfulClient.getEntry(
+        contentfulEntry.fields.faqCategory.sys.id
+      );
+      const faqCategorySlug =
+        faqCategory.fields?.slug || faqCategory.fields?.frontendUrl;
       if (faqCategorySlug) {
         categorySlug = faqCategorySlug;
       } else {
@@ -798,7 +804,9 @@ async function submitFAQToMagento(contentfulEntry, renderedHtml) {
         categorySlug = slugify(faqCategory.fields?.title || "general");
       }
     } catch (error) {
-      console.warn(`Failed to fetch FAQ category, using fallback: ${error.message}`);
+      console.warn(
+        `Failed to fetch FAQ category, using fallback: ${error.message}`
+      );
       // Fallback to old method if new category fetch fails
       categorySlug = contentfulEntry.fields.freshdeskCategoryName
         ? slugify(contentfulEntry.fields.freshdeskCategoryName)
@@ -1312,7 +1320,8 @@ async function submitFAQCategoryToMagento(categoryData, renderedHtml) {
 
   const sanitizedTitle = sanitizeString(title);
   // Use slug from Contentful if available, otherwise fall back to formatting the title
-  const categorySlug = categoryData.fields.slug || categoryData.fields.frontendUrl;
+  const categorySlug =
+    categoryData.fields.slug || categoryData.fields.frontendUrl;
   const categoryPath = categorySlug || formatCategoryPath(title);
 
   const pageData = {

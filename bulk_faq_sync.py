@@ -16,8 +16,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 # Configuration
-CONTENTFUL_SPACE_ID = os.getenv('CONTENTFUL_SPACE_ID')
-CONTENTFUL_ACCESS_TOKEN = os.getenv('CONTENTFUL_ACCESS_TOKEN')
+CONTENTFUL_SPACE_ID = "bq61jovlhx8i"
+CONTENTFUL_ACCESS_TOKEN = "uP9kJZ8eENzSqCOtV045PiErzIuPoZKBlZyR6O6ZReY"
 EXPRESS_SERVER_URL = os.getenv('EXPRESS_SERVER_URL', 'http://localhost:3000')
 
 # Rate limiting configuration

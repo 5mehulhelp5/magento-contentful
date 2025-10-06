@@ -45,12 +45,17 @@ const HomeHeader = () => {
         <div key="gg-home-header" id="gg-home-header">
           <h1 key="title">Burpee Garden Guide</h1>
           <p key="description">
-            Dig in to find garden inspiration and advice from the experts at Burpee
+            Dig in to find garden inspiration and advice from the experts at
+            Burpee
           </p>
         </div>
 
         {/* Category buttons (desktop) */}
-        <div key="gg-home-links" id="gg-home-links" className="category-buttons-desktop">
+        <div
+          key="gg-home-links"
+          id="gg-home-links"
+          className="category-buttons-desktop"
+        >
           <ul>
             {categoryButtons.map((button, index) => {
               const IconComponent = button.icon;
@@ -104,11 +109,7 @@ const HomeHeader = () => {
               (Array.isArray(button.name) &&
                 button.name.join("").includes("Get Started"))
             ) {
-              mobileButtonText = [
-                "Get",
-                <br key="br" />,
-                "Started",
-              ];
+              mobileButtonText = ["Get", <br key="br" />, "Started"];
             } else if (
               button.name === "Kitchen Gardening" ||
               (Array.isArray(button.name) &&
@@ -120,17 +121,9 @@ const HomeHeader = () => {
               (Array.isArray(button.name) &&
                 button.name.join("").includes("Flowers"))
             ) {
-              mobileButtonText = [
-                "Flowers",
-                <br key="br" />,
-                "& More",
-              ];
+              mobileButtonText = ["Flowers", <br key="br" />, "& More"];
             } else if (button.name === "Garden Care") {
-              mobileButtonText = [
-                "Garden",
-                <br key="br" />,
-                "Care",
-              ];
+              mobileButtonText = ["Garden", <br key="br" />, "Care"];
             } else {
               mobileButtonText = Array.isArray(button.name)
                 ? button.name.join("")
@@ -208,12 +201,8 @@ const HomeHeader = () => {
               method="get"
             >
               <div className="relative flex">
-                <label
-                  key="search-label"
-                  className="sr-only"
-                  htmlFor="search"
-                >
-                  Search seeds, plants & supplies
+                <label key="search-label" className="sr-only" htmlFor="search">
+                  Search the Garden Guide
                 </label>
                 <input
                   key="search-input"
@@ -225,7 +214,7 @@ const HomeHeader = () => {
                   autoCorrect="off"
                   name="q"
                   defaultValue=""
-                  placeholder="Search seeds, plants & supplies"
+                  placeholder="Search the Garden Guide"
                   maxLength="128"
                 />
                 <button
